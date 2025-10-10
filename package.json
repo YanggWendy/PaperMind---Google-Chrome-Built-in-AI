@@ -1,0 +1,65 @@
+{
+    "name": "papermind-ai-assistant",
+    "version": "1.0.0",
+    "description": "A Chrome extension that transforms dense research papers into interactive summaries using Chrome's built-in AI",
+    "main": "background.js",
+    "scripts": {
+        "build": "npm run copy-assets",
+        "copy-assets": "cp -r icons/ dist/ 2>/dev/null || true",
+        "test": "echo \"No tests specified\" && exit 0",
+        "lint": "eslint *.js",
+        "package": "zip -r papermind-extension.zip . -x '*.git*' 'node_modules/*' '*.md' 'package*.json'"
+    },
+    "keywords": [
+        "chrome-extension",
+        "ai",
+        "research",
+        "papers",
+        "summarization",
+        "academic",
+        "chrome-built-in-ai",
+        "gemini",
+        "machine-learning"
+    ],
+    "author": "PaperMind Team",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/your-repo/papermind.git"
+    },
+    "bugs": {
+        "url": "https://github.com/your-repo/papermind/issues"
+    },
+    "homepage": "https://github.com/your-repo/papermind#readme",
+    "engines": {
+        "node": ">=14.0.0"
+    },
+    "devDependencies": {
+        "eslint": "^8.0.0"
+    },
+    "manifest": {
+        "version": 3,
+        "permissions": [
+            "activeTab",
+            "storage",
+            "scripting",
+            "tabs"
+        ],
+        "host_permissions": [
+            "https://arxiv.org/*",
+            "https://*.arxiv.org/*",
+            "https://scholar.google.com/*",
+            "https://*.scholar.google.com/*",
+            "https://www.nature.com/*",
+            "https://*.nature.com/*",
+            "https://www.science.org/*",
+            "https://*.science.org/*",
+            "https://link.springer.com/*",
+            "https://*.link.springer.com/*",
+            "https://ieeexplore.ieee.org/*",
+            "https://*.ieeexplore.ieee.org/*",
+            "https://acm.org/*",
+            "https://*.acm.org/*"
+        ]
+    }
+}

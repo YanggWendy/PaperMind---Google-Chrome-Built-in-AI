@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperMind Demo - AI Research Assistant</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .demo-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 18px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            color: #666;
+            margin: 0;
+        }
+
+        .demo-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .demo-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .demo-steps {
+            list-style: none;
+            padding: 0;
+        }
+
+        .demo-steps li {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #28a745;
+        }
+
+        .demo-steps li::before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin: 40px 0;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+        }
+
+        .cta-section h2 {
+            margin-bottom: 15px;
+        }
+
+        .cta-section p {
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .btn {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .tech-stack {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .tech-stack h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .tech-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .tech-item {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 500;
+            color: #667eea;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="demo-container">
+        <div class="header">
+            <h1>🧠 PaperMind AI Assistant</h1>
+            <p>Transform dense research papers into interactive summaries using Chrome's built-in AI</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>🤖 AI-Powered Analysis</h3>
+                <p>Smart summarization, interactive Q&A, and context-aware responses using Chrome's built-in AI APIs.
+                </p>
+            </div>
+            <div class="feature-card">
+                <h3>📊 Visual Learning</h3>
+                <p>Generate diagrams for complex concepts, section breakdowns, and key point extraction.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎯 Smart Highlighting</h3>
+                <p>Highlight any text for instant AI explanation, simplification, and contextual questions.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🌐 Multi-Site Support</h3>
+                <p>Works on arXiv, Nature, Science, Springer, IEEE, ACM, and other academic platforms.</p>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🚀 How It Works</h2>
+            <ol class="demo-steps">
+                <li>Navigate to any research paper on supported academic sites</li>
+                <li>Click the floating PaperMind button (🧠) that appears automatically</li>
+                <li>Wait for AI analysis to complete (usually 2-5 seconds)</li>
+                <li>Explore the interactive summary with key points, methodology, and results</li>
+                <li>Ask questions directly about the paper content</li>
+                <li>Highlight text for specific explanations and simplifications</li>
+                <li>Generate diagrams for complex concepts</li>
+                <li>Save and export your insights</li>
+            </ol>
+        </div>
+
+        <div class="tech-stack">
+            <h3>🛠️ Technical Stack</h3>
+            <div class="tech-list">
+                <div class="tech-item">Chrome Extension API</div>
+                <div class="tech-item">Chrome Built-in AI</div>
+                <div class="tech-item">Gemini Nano/Pro</div>
+                <div class="tech-item">Prompt API</div>
+                <div class="tech-item">Summarizer API</div>
+                <div class="tech-item">Writer API</div>
+                <div class="tech-item">Rewriter API</div>
+                <div class="tech-item">Translator API</div>
+                <div class="tech-item">JavaScript ES6+</div>
+                <div class="tech-item">CSS3</div>
+                <div class="tech-item">HTML5</div>
+                <div class="tech-item">Chrome Storage API</div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>✨ Key Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>📝 Smart Summarization</h3>
+                    <p>Automatically breaks down papers into digestible sections with clear overviews, key points,
+                        methodology, results, and implications.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🤔 Interactive Q&A</h3>
+                    <p>Ask questions directly about the paper content and get AI-powered answers based on the paper's
+                        content and context.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📊 Diagram Generation</h3>
+                    <p>Generate visual representations of complex concepts, methodologies, and relationships described
+                        in the paper.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎯 Text Highlighting</h3>
+                    <p>Highlight any text in the paper to get instant explanations, simplifications, or summaries of the
+                        selected content.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🌍 Multi-language</h3>
+                    <p>Support for multiple languages with automatic translation and localized AI responses.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🔒 Privacy-First</h3>
+                    <p>All processing done locally using Chrome's built-in AI - no data sent to external servers.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <h2>Ready to Transform Your Research Experience?</h2>
+            <p>Install PaperMind and start exploring research papers like never before!</p>
+            <a href="#" class="btn">Install PaperMind</a>
+        </div>
+
+        <div class="demo-section">
+            <h2>📋 Installation Steps</h2>
+            <ol class="demo-steps">
+                <li>Download the PaperMind extension files</li>
+                <li>Open Chrome and navigate to chrome://extensions/</li>
+                <li>Enable "Developer mode" in the top right</li>
+                <li>Click "Load unpacked" and select the PaperMind folder</li>
+                <li>Configure your settings in the extension popup</li>
+                <li>Visit any research paper and start using PaperMind!</li>
+            </ol>
+        </div>
+
+        <div class="demo-section">
+            <h2>🎯 Supported Sites</h2>
+            <p>PaperMind works on all major academic platforms:</p>
+            <ul style="columns: 2; list-style: none; padding: 0;">
+                <li>✅ arXiv.org</li>
+                <li>✅ Nature.com</li>
+                <li>✅ Science.org</li>
+                <li>✅ Google Scholar</li>
+                <li>✅ Springer</li>
+                <li>✅ IEEE Xplore</li>
+                <li>✅ ACM Digital Library</li>
+                <li>✅ And many more!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Simple demo interaction
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('PaperMind Demo loaded successfully!');
+
+            // Add some interactive elements
+            const cards = document.querySelectorAll('.feature-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function () {
+                    this.style.transform = 'translateY(-2px)';
+                    this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                });
+
+                card.addEventListener('mouseleave', function () {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = 'none';
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
