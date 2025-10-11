@@ -57,22 +57,55 @@ class PaperMind {
     }
 
     extractPaperContent() {
+        const article = this.extractArticle();
+
         const content = {
-            title: this.extractTitle(),
-            authors: this.extractAuthors(),
-            abstract: this.extractAbstract(),
-            sections: this.extractSections(),
+            title: this.extractTitle(article),
+            authors: this.extractAuthors(article),
+            abstract: this.extractAbstract(article),
+            sections: this.extractSections(article),
             url: window.location.href,
             timestamp: new Date().toISOString()
         };
 
         this.paperData = content;
         console.log('PaperMind: Extracted paper content', content);
+        this.logExtractionSummary(content);
     }
 
-    extractTitle() {
-        // Try multiple selectors for title
+    logExtractionSummary(content) {
+        console.log('\n📄 Paper Extraction Summary:');
+        console.log(`   Title: ${content.title}`);
+        console.log(`   Authors: ${content.authors.substring(0, 100)}...`);
+        console.log(`   Abstract: ${content.abstract.text?.substring(0, 100)}... (${content.abstract.images?.length || 0} images)`);
+        console.log(`   Sections: ${content.sections?.length || 0}`);
+        
+        content.sections?.forEach((section, idx) => {
+            console.log(`     ${idx + 1}. ${section.title} (${section.images?.length || 0} images, ${section.text?.length || 0} chars)`);
+        });
+        
+        const totalImages = (content.abstract.images?.length || 0) + 
+                          (content.sections?.reduce((sum, s) => sum + (s.images?.length || 0), 0) || 0);
+        console.log(`   Total Images/Tables: ${totalImages}`);
+    }
+
+    extractArticle() {
+        const articleSelectors = [
+            'article',
+        ];
+
+        for (const selector of articleSelectors) {
+            const element = document.querySelector(selector);
+            if (element) return element;
+        }
+        console.error('PaperMind: No article html tag found');
+        return null;
+    }
+
+    extractTitle(article) {
+        // Try multiple selectors for title (arXiv and general papers)
         const titleSelectors = [
+            'h1.ltx_title_document', // arXiv specific
             'h1.title',
             'h1',
             '.title',
@@ -82,17 +115,18 @@ class PaperMind {
         ];
 
         for (const selector of titleSelectors) {
-            const element = document.querySelector(selector);
+            const element = (article || document).querySelector(selector);
             if (element && element.textContent.trim()) {
-                return element.textContent.trim();
+                return this.cleanText(element.textContent);
             }
         }
 
         return document.title || 'Untitled Paper';
     }
 
-    extractAuthors() {
+    extractAuthors(article) {
         const authorSelectors = [
+            '.ltx_authors', // arXiv specific
             '.authors',
             '.author',
             '.author-list',
@@ -101,17 +135,18 @@ class PaperMind {
         ];
 
         for (const selector of authorSelectors) {
-            const element = document.querySelector(selector);
+            const element = (article || document).querySelector(selector);
             if (element) {
-                return element.textContent.trim();
+                return this.cleanText(element.textContent);
             }
         }
 
         return 'Unknown Authors';
     }
 
-    extractAbstract() {
+    extractAbstract(article) {
         const abstractSelectors = [
+            '.ltx_abstract', // arXiv specific
             '.abstract',
             '.paper-abstract',
             '.article-abstract',
@@ -119,39 +154,133 @@ class PaperMind {
         ];
 
         for (const selector of abstractSelectors) {
-            const element = document.querySelector(selector);
+            const element = (article || document).querySelector(selector);
             if (element && element.textContent.trim()) {
-                return element.textContent.trim();
+                return {
+                    text: this.cleanText(element.textContent),
+                    images: this.extractImages(element)
+                };
             }
         }
 
-        return '';
+        return { text: '', images: [] };
     }
 
-    extractSections() {
+    extractSections(article) {
         const sections = [];
-        const sectionSelectors = [
-            'h2', 'h3', 'h4',
-            '.section',
-            '.subsection',
-            '.paper-section'
-        ];
-
-        sectionSelectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(element => {
-                const text = element.textContent.trim();
-                if (text && text.length > 20) {
+        
+        // Try arXiv-specific structure first
+        const arxivSections = (article || document).querySelectorAll('section.ltx_section');
+        
+        if (arxivSections.length > 0) {
+            arxivSections.forEach(section => {
+                const titleElem = section.querySelector('h2.ltx_title_section, h3.ltx_title_subsection, h4.ltx_title_subsubsection');
+                const sectionId = section.getAttribute('id');
+                
+                if (titleElem) {
+                    // Extract text content (excluding figures and tables initially)
+                    const textContent = this.extractSectionText(section);
+                    const images = this.extractImages(section);
+                    
                     sections.push({
-                        title: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-                        content: text,
-                        element: element
+                        id: sectionId,
+                        title: this.cleanText(titleElem.textContent),
+                        text: textContent,
+                        images: images,
+                        element: section
                     });
                 }
             });
-        });
+        } else {
+            // Fallback to general section extraction
+            const sectionSelectors = ['h2', 'h3', 'h4', '.section', '.subsection', '.paper-section'];
+            
+            sectionSelectors.forEach(selector => {
+                const elements = (article || document).querySelectorAll(selector);
+                elements.forEach(element => {
+                    const text = element.textContent.trim();
+                    if (text && text.length > 20) {
+                        sections.push({
+                            title: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+                            text: text,
+                            images: [],
+                            element: element
+                        });
+                    }
+                });
+            });
+        }
 
         return sections;
+    }
+
+    extractSectionText(sectionElement) {
+        // Clone the section to avoid modifying the original
+        const clone = sectionElement.cloneNode(true);
+        
+        // Remove unwanted elements
+        const unwantedSelectors = [
+            'button',
+            '.sr-only',
+            'figure',
+            '.ltx_note_content', // footnotes
+            '.ltx_ref' // references can be kept but cleaned
+        ];
+        
+        unwantedSelectors.forEach(selector => {
+            clone.querySelectorAll(selector).forEach(el => el.remove());
+        });
+        
+        // Get text and clean it
+        return this.cleanText(clone.textContent);
+    }
+
+    extractImages(containerElement) {
+        const images = [];
+        
+        // Find all figures (images and tables)
+        const figures = containerElement.querySelectorAll('figure');
+        
+        figures.forEach(figure => {
+            const img = figure.querySelector('img');
+            const caption = figure.querySelector('figcaption, .ltx_caption');
+            
+            if (img) {
+                images.push({
+                    type: 'image',
+                    src: img.src,
+                    alt: img.alt || '',
+                    caption: caption ? this.cleanText(caption.textContent) : '',
+                    width: img.width,
+                    height: img.height
+                });
+            } else if (figure.classList.contains('ltx_table')) {
+                // Handle tables
+                const table = figure.querySelector('table');
+                const caption = figure.querySelector('figcaption, .ltx_caption');
+                
+                if (table) {
+                    images.push({
+                        type: 'table',
+                        html: table.outerHTML,
+                        caption: caption ? this.cleanText(caption.textContent) : '',
+                        text: this.cleanText(table.textContent)
+                    });
+                }
+            }
+        });
+        
+        return images;
+    }
+
+    cleanText(text) {
+        if (!text) return '';
+        
+        return text
+            .replace(/Report issue for preceding element/g, '') // Remove arXiv UI text
+            .replace(/\s+/g, ' ') // Normalize whitespace
+            .replace(/\n\s*\n/g, '\n') // Remove extra line breaks
+            .trim();
     }
 
     setupEventListeners() {
