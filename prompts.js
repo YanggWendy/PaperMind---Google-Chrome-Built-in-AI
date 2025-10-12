@@ -90,7 +90,7 @@ Here is the structure:
     </ul>
   </div>
 
-  <!-- Optional: details, short and scannable -->
+  <!-- details of the section, user will use this section to gain more information about the bullet points summarized above. Be comprehensive. Do not lose any key information. -->
   <details class="more"><summary>Details</summary>
     <ul>
       <li>…</li>
@@ -111,13 +111,7 @@ Here is the structure:
 * **Target bullets**: 8-15 in essentials (adjust based on section density); 5-10 in details for supplementary information.
 
 ## Image Handling
-Do not include any images or data URIs.
-
-
-## Provenance & Safety
-
-* Never quote more than a short phrase verbatim except equations.
-* Do not invent citations; keep bracketed refs as plain text if they appear.
+* Do not include any images or data URIs.
 
 
 ## Input

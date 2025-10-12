@@ -442,32 +442,52 @@ class PaperMind {
             return;
         }
 
-        // Create a wrapper for the enhanced paper content
-        const enhancedContent = document.createElement('div');
-        enhancedContent.className = 'papermind-enhanced-paper';
-        enhancedContent.setAttribute('data-papermind-enhanced', 'true');
+        // Find existing sections in the article
+        const existingSections = article.querySelectorAll('section.ltx_section');
+        
+        if (existingSections.length === 0) {
+            console.error('PaperMind: No sections found in article');
+            return;
+        }
 
-        // Add header with paper title
-        const header = document.createElement('header');
-        header.className = 'papermind-paper-header';
-        header.innerHTML = `
-            <h1 class="paper-title">${this.escapeHtml(this.paperData.title)}</h1>
-        `;
-        enhancedContent.appendChild(header);
+        // Verify we have matching number of sections
+        if (existingSections.length !== htmlSections.length) {
+            console.warn(`PaperMind: Section count mismatch. Found ${existingSections.length} sections but received ${htmlSections.length} HTML sections`);
+        }
 
-        // Add all sections with markdown parsing
-        const sectionsContainer = document.createElement('div');
-        sectionsContainer.className = 'papermind-sections-container';
-        htmlSections.forEach(html => {
+        // Replace content of each existing section with enhanced content
+        const maxSections = Math.min(existingSections.length, htmlSections.length);
+        for (let i = 0; i < maxSections; i++) {
+            const section = existingSections[i];
+            const html = htmlSections[i];
+            
             // Parse markdown syntax in the HTML
             const parsedHtml = this.parseMarkdownInHtml(html);
-            sectionsContainer.innerHTML += parsedHtml;
-        });
-        enhancedContent.appendChild(sectionsContainer);
-
-        // Replace article content
-        article.innerHTML = '';
-        article.appendChild(enhancedContent);
+            
+            // Create a temporary container to parse the HTML
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = parsedHtml;
+            
+            // Find the title in the existing section (preserve it to keep section anchors working)
+            const existingTitle = section.querySelector('h2.ltx_title_section, h3.ltx_title_subsection, h4.ltx_title_subsubsection');
+            
+            // Clear the section content but keep the section element itself
+            section.innerHTML = '';
+            
+            // Re-add the original title first to maintain section navigation
+            if (existingTitle) {
+                section.appendChild(existingTitle.cloneNode(true));
+            }
+            
+            // Add the enhanced content
+            const enhancedWrapper = document.createElement('div');
+            enhancedWrapper.className = 'papermind-enhanced-content';
+            enhancedWrapper.innerHTML = parsedHtml;
+            section.appendChild(enhancedWrapper);
+            
+            // Mark the section as enhanced
+            section.setAttribute('data-papermind-enhanced', 'true');
+        }
 
         console.log('PaperMind: Enhanced paper rendered successfully');
         this.showNotification('Paper enhanced successfully!', 'success');
