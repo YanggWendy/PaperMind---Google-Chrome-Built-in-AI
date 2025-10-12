@@ -47,6 +47,8 @@
                 "https://*.acm.org/*"
             ],
             "js": [
+                "prompts.js",
+                "chromeAIHelper.js",
                 "content.js"
             ],
             "css": [

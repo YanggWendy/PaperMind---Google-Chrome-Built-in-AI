@@ -1,6 +1,15 @@
 // PaperMind Content Script
 // Detects academic papers and provides AI-powered analysis
 
+// Note: chromeAIHelper.js is loaded before this script (see manifest.json)
+// To use Chrome AI directly in content script:
+// const session = await window.ChromeAIHelper.getLanguageModel(window, {}, (progress) => console.log(progress));
+// const response = await window.ChromeAIHelper.callChromeAI(session, "Your prompt here");
+// await window.ChromeAIHelper.destroySession(session);
+//
+// Or use the convenience function:
+// const response = await window.ChromeAIHelper.callChromeAIAuto("Your prompt here");
+
 class PaperMind {
     constructor() {
         this.isActive = false;
@@ -238,36 +247,32 @@ class PaperMind {
     extractImages(containerElement) {
         const images = [];
         
-        // Find all figures (images and tables)
-        const figures = containerElement.querySelectorAll('figure');
-        
-        figures.forEach(figure => {
-            const img = figure.querySelector('img');
-            const caption = figure.querySelector('figcaption, .ltx_caption');
-            
-            if (img) {
-                images.push({
-                    type: 'image',
-                    src: img.src,
-                    alt: img.alt || '',
-                    caption: caption ? this.cleanText(caption.textContent) : '',
-                    width: img.width,
-                    height: img.height
-                });
-            } else if (figure.classList.contains('ltx_table')) {
-                // Handle tables
-                const table = figure.querySelector('table');
-                const caption = figure.querySelector('figcaption, .ltx_caption');
-                
-                if (table) {
-                    images.push({
-                        type: 'table',
-                        html: table.outerHTML,
-                        caption: caption ? this.cleanText(caption.textContent) : '',
-                        text: this.cleanText(table.textContent)
-                    });
+        // Find all figures, but only select top-level ones (not nested inside other figures)
+        const allFigures = containerElement.querySelectorAll('figure');
+        const topLevelFigures = Array.from(allFigures).filter(figure => {
+            // Check if this figure has any ancestor that is also a figure
+            let parent = figure.parentElement;
+            while (parent && parent !== containerElement) {
+                if (parent.tagName === 'FIGURE') {
+                    return false; // This is a nested figure, skip it
                 }
+                parent = parent.parentElement;
             }
+            return true; // This is a top-level figure
+        });
+        
+        topLevelFigures.forEach(figure => {
+            // Store the entire figure HTML element directly
+            // This preserves all structure, styling, nested subfigures, captions, etc.
+            const clonedFigure = figure.cloneNode(true);
+            
+            // Remove any "Report issue" buttons that are part of arXiv's UI
+            clonedFigure.querySelectorAll('button.sr-only').forEach(btn => btn.remove());
+            
+            images.push({
+                type: 'figure',
+                html: clonedFigure.outerHTML
+            });
         });
         
         return images;
@@ -410,12 +415,88 @@ class PaperMind {
             });
 
             if (response && response.summary) {
-                this.displaySummary(response.summary);
+                // Check if it's the new HTML array format or old object format
+                if (Array.isArray(response.summary)) {
+                    this.renderEnhancedPaper(response.summary);
+                } else {
+                    this.displaySummary(response.summary);
+                }
             }
         } catch (error) {
             console.error('PaperMind: Error analyzing paper', error);
             this.showError('Failed to analyze paper. Please try again.');
         }
+    }
+
+    renderEnhancedPaper(htmlSections) {
+        // Close the summary panel if it's open
+        if (this.summaryPanel) {
+            this.summaryPanel.remove();
+            this.summaryPanel = null;
+        }
+
+        // Find the article element
+        const article = this.extractArticle();
+        if (!article) {
+            console.error('PaperMind: Cannot find article element to render enhanced paper');
+            return;
+        }
+
+        // Create a wrapper for the enhanced paper content
+        const enhancedContent = document.createElement('div');
+        enhancedContent.className = 'papermind-enhanced-paper';
+        enhancedContent.setAttribute('data-papermind-enhanced', 'true');
+
+        // Add header with paper title
+        const header = document.createElement('header');
+        header.className = 'papermind-paper-header';
+        header.innerHTML = `
+            <h1 class="paper-title">${this.escapeHtml(this.paperData.title)}</h1>
+        `;
+        enhancedContent.appendChild(header);
+
+        // Add all sections with markdown parsing
+        const sectionsContainer = document.createElement('div');
+        sectionsContainer.className = 'papermind-sections-container';
+        htmlSections.forEach(html => {
+            // Parse markdown syntax in the HTML
+            const parsedHtml = this.parseMarkdownInHtml(html);
+            sectionsContainer.innerHTML += parsedHtml;
+        });
+        enhancedContent.appendChild(sectionsContainer);
+
+        // Replace article content
+        article.innerHTML = '';
+        article.appendChild(enhancedContent);
+
+        console.log('PaperMind: Enhanced paper rendered successfully');
+        this.showNotification('Paper enhanced successfully!', 'success');
+    }
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    parseMarkdownInHtml(html) {
+        // Parse markdown syntax within HTML content
+        // This handles common markdown patterns that might appear in the AI-generated content
+        
+        // Bold: **text** → <strong>text</strong>
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        
+        // Italic: *text* → <em>text</em> (but not if it's part of **)
+        html = html.replace(/(?<!\*)\*([^\*]+?)\*(?!\*)/g, '<em>$1</em>');
+        
+        // Inline code: `code` → <code>code</code>
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        
+        // Links: [text](url) → <a href="url">text</a>
+        html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        
+        return html;
     }
 
     displaySummary(summary) {

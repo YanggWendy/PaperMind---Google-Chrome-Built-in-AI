@@ -98,6 +98,7 @@
 PaperMind/
 ├── manifest.json          # Extension configuration
 ├── background.js          # Service worker for AI processing
+├── chromeAIHelper.js     # Shared Chrome AI utility functions
 ├── content.js            # Content script for page interaction
 ├── content.css           # Styling for injected UI
 ├── popup.html           # Extension popup interface
@@ -105,6 +106,19 @@ PaperMind/
 ├── popup.css            # Popup styling
 └── icons/               # Extension icons
 ```
+
+### Chrome AI Helper
+
+The `chromeAIHelper.js` module provides a unified interface for calling Chrome's built-in Language Model API. It can be used in both background service workers and content scripts.
+
+**Key Features:**
+- Automatic session management
+- Progress monitoring for model downloads
+- JSON response parsing
+- Error handling and fallbacks
+- Context-aware (works in both service workers and content scripts)
+
+**Usage:** See [CHROME_AI_HELPER_USAGE.md](CHROME_AI_HELPER_USAGE.md) for detailed documentation.
 
 ### AI Integration
 

@@ -1,10 +1,245 @@
 // PaperMind Background Service Worker
 // Handles AI processing using Chrome's built-in AI APIs
 
+// Import the Chrome AI helper and prompts
+importScripts('chromeAIHelper.js', 'prompts.js');
+
 class PaperMindAI {
     constructor() {
         this.setupMessageHandlers();
         this.cache = new Map();
+        this.globalSession = null;
+        this.sessionTimeout = null;
+        this.SESSION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    }
+
+    /**
+     * Estimate the size of a chunk for AI processing
+     * @param {Object} chunk - Paper data chunk
+     * @returns {Object} Size statistics
+     */
+    estimateChunkSize(chunk) {
+        const jsonStr = JSON.stringify(chunk);
+        const textContent = chunk.sections?.map(s => s.text || '').join(' ') || '';
+        const imageCount = chunk.sections?.reduce((sum, s) => sum + (s.images?.length || 0), 0) || 0;
+        
+        return {
+            totalChars: jsonStr.length,
+            textChars: textContent.length,
+            imageCount: imageCount,
+            estimatedTokens: Math.ceil(jsonStr.length / 4), // Rough estimate: ~4 chars per token
+            isLarge: jsonStr.length > 50000 // Flag if over 50k characters
+        };
+    }
+
+    /**
+     * Chunks paperData into smaller pieces for processing
+     * @param {Object} paperData - The full paper data object
+     * @param {number} sectionsPerChunk - Number of sections per chunk (default: 2)
+     * @returns {Array} Array of chunked paper data objects
+     */
+    chunkPaperData(paperData, sectionsPerChunk = 1) {
+        if (!paperData || !paperData.sections || paperData.sections.length === 0) {
+            return [paperData];
+        }
+
+        const chunks = [];
+        const sections = paperData.sections;
+        
+        // Split sections into chunks
+        for (let i = 0; i < sections.length; i += sectionsPerChunk) {
+            const chunk = {
+                title: paperData.title,
+                abstract: paperData.abstract,
+                url: paperData.url,
+                timestamp: paperData.timestamp,
+                sections: sections.slice(i, i + sectionsPerChunk),
+                // Metadata about chunking
+                chunkInfo: {
+                    chunkIndex: Math.floor(i / sectionsPerChunk),
+                    totalChunks: Math.ceil(sections.length / sectionsPerChunk),
+                    sectionRange: [i, Math.min(i + sectionsPerChunk, sections.length)]
+                }
+            };
+            chunks.push(chunk);
+        }
+        console.log('PaperMind: Chunks:', chunks);
+        return chunks;
+    }
+
+    /**
+     * Creates a text-only version of a chunk by removing images from all sections
+     * @param {Object} chunk - The chunk object containing sections with potential images
+     * @returns {Object} A new chunk object with images removed from all sections
+     */
+    createTextOnlyChunk(chunk) {
+        if (!chunk) {
+            return chunk;
+        }
+
+        return {
+            ...chunk,
+            sections: chunk.sections?.map(section => {
+                const { images, ...sectionWithoutImages } = section;
+                return sectionWithoutImages;
+            }) || []
+        };
+    }
+
+    /**
+     * Cleans up HTML string by removing markdown code block wrappers
+     * @param {string} htmlStr - The HTML string to clean
+     * @returns {string} Cleaned HTML string
+     */
+    cleanupHtmlString(htmlStr) {
+        if (!htmlStr || typeof htmlStr !== 'string') {
+            return htmlStr;
+        }
+        
+        // Check if the string starts with ``` (markdown code block)
+        if (htmlStr.startsWith('```')) {
+            // Remove the first ```html (7 characters) or ```HTML or just ```
+            let cleaned = htmlStr;
+            
+            // Check for ```html or ```HTML
+            if (htmlStr.startsWith('```html')) {
+                cleaned = htmlStr.slice(7);
+            } else if (htmlStr.startsWith('```HTML')) {
+                cleaned = htmlStr.slice(7);
+            } else {
+                // Just ```, find the first newline and remove up to there
+                const firstNewline = htmlStr.indexOf('\n');
+                if (firstNewline !== -1) {
+                    cleaned = htmlStr.slice(firstNewline + 1);
+                } else {
+                    cleaned = htmlStr.slice(3);
+                }
+            }
+            
+            // Remove the last ```
+            if (cleaned.endsWith('```')) {
+                cleaned = cleaned.slice(0, -3);
+            }
+            
+            // Trim any extra whitespace
+            return cleaned.trim();
+        }
+        
+        return htmlStr;
+    }
+
+    /**
+     * Injects image/figure HTML into the generated section HTML
+     * @param {string} sectionHtml - The generated HTML string
+     * @param {Object} chunk - The chunk object containing section data with images
+     * @returns {string} HTML with images injected
+     */
+    injectImagesIntoHtml(sectionHtml, chunk) {
+        if (!chunk || !chunk.sections || chunk.sections.length === 0) {
+            return sectionHtml;
+        }
+
+        // Collect all figure HTML from sections
+        let figuresHtml = '';
+        
+        chunk.sections.forEach((sectionData) => {
+            if (!sectionData.images || sectionData.images.length === 0) return;
+            
+            // Simply concatenate the stored HTML elements
+            sectionData.images.forEach((imageData) => {
+                if (imageData.html) {
+                    figuresHtml += imageData.html;
+                }
+            });
+        });
+
+        // If there are figures, inject them before the footer
+        if (figuresHtml) {
+            const imagesSection = `<div class="section-images">${figuresHtml}</div>`;
+            
+            // Insert before </footer> if exists, otherwise before </section>
+            if (sectionHtml.includes('</footer>')) {
+                sectionHtml = sectionHtml.replace('</footer>', `${imagesSection}</footer>`);
+            } else if (sectionHtml.includes('</section>')) {
+                sectionHtml = sectionHtml.replace('</section>', `${imagesSection}</section>`);
+            } else {
+                // Fallback: append to the end
+                sectionHtml += imagesSection;
+            }
+        }
+
+        return sectionHtml;
+    }
+
+    /**
+     * Get or create a global AI session
+     * This reuses the same session across multiple requests for better performance
+     * @returns {Promise<Object>} The language model session
+     */
+    async ensureSession() {
+        if (!this.globalSession) {
+            console.log('PaperMind: Creating new global AI session...');
+            try {
+                this.globalSession = await self.ChromeAIHelper.getLanguageModel(
+                    self,
+                    {}, // options
+                    (progress) => console.log(`Model download: ${progress}%`)
+                );
+                console.log('PaperMind: Global session created successfully');
+            } catch (error) {
+                console.error('PaperMind: Failed to create session:', error);
+                this.globalSession = null;
+                throw error;
+            }
+        }
+        
+        // Reset the timeout every time we use the session
+        this.resetSessionTimeout();
+        
+        return this.globalSession;
+    }
+
+    /**
+     * Reset the session timeout to auto-cleanup after inactivity
+     */
+    resetSessionTimeout() {
+        if (this.sessionTimeout) {
+            clearTimeout(this.sessionTimeout);
+        }
+
+        this.sessionTimeout = setTimeout(() => {
+            console.log('PaperMind: Session timeout - cleaning up...');
+            this.destroyGlobalSession();
+        }, this.SESSION_TIMEOUT_MS);
+    }
+
+    /**
+     * Destroy the global session to free resources
+     */
+    async destroyGlobalSession() {
+        if (this.globalSession) {
+            console.log('PaperMind: Destroying global session...');
+            try {
+                await self.ChromeAIHelper.destroySession(this.globalSession);
+            } catch (error) {
+                console.error('PaperMind: Error destroying session:', error);
+            }
+            this.globalSession = null;
+        }
+        
+        if (this.sessionTimeout) {
+            clearTimeout(this.sessionTimeout);
+            this.sessionTimeout = null;
+        }
+    }
+
+    /**
+     * Force recreate the session (useful after errors)
+     */
+    async recreateSession() {
+        console.log('PaperMind: Recreating session...');
+        await this.destroyGlobalSession();
+        return await this.ensureSession();
     }
 
     setupMessageHandlers() {
@@ -55,78 +290,153 @@ class PaperMindAI {
         }
 
         try {
-            // Use Chrome's built-in AI APIs for paper analysis
-            const analysisPrompt = this.createAnalysisPrompt(paperData);
-
-            // Simulate Chrome AI API call (replace with actual API when available)
-            const summary = await this.callChromeAI(analysisPrompt);
-
-            const result = {
-                overview: summary.overview || this.generateOverview(paperData),
-                keyPoints: summary.keyPoints || this.extractKeyPoints(paperData),
-                methodology: summary.methodology || this.extractMethodology(paperData),
-                results: summary.results || this.extractResults(paperData),
-                implications: summary.implications || this.extractImplications(paperData)
-            };
-
+            console.log('PaperMind: Starting paper analysis...');
+            console.log('PaperData:', { title: paperData.title, sections: paperData.sections?.length });
+            
+            const paperDataChunks = this.chunkPaperData(paperData);
+            console.log(`PaperMind: Processing ${paperDataChunks.length} chunks...`);
+            
+            let summaryHtmlList = [];
+            
+            for (let i = 0; i < paperDataChunks.length; i++) {
+                const chunk = paperDataChunks[i];
+                
+                // Create a text-only version of the chunk (without images) for AI processing
+                const textOnlyChunk = this.createTextOnlyChunk(chunk);
+                
+                console.log(`\nPaperMind: Processing chunk ${i + 1}/${paperDataChunks.length}...`);
+                
+                // Log chunk size for debugging
+                const sizeInfo = this.estimateChunkSize(textOnlyChunk);
+                console.log(`PaperMind: Chunk size: ${sizeInfo.totalChars} chars (~${sizeInfo.estimatedTokens} tokens), ${sizeInfo.imageCount} images`);
+                if (sizeInfo.isLarge) {
+                    console.warn(`⚠️ PaperMind: Large chunk detected (${sizeInfo.totalChars} chars) - may hit token limits`);
+                }
+                
+                try {
+                    const analysisPrompt = self.Prompts.analyzePaper(textOnlyChunk);
+                    
+                    // Use the updated callPromptAPI that uses global session
+                    let sectionHtml = await this.callPromptAPI(analysisPrompt);
+                    
+                    // Clean up markdown code block wrappers
+                    sectionHtml = this.cleanupHtmlString(sectionHtml);
+                    
+                    // Inject images into the generated HTML
+                    sectionHtml = this.injectImagesIntoHtml(sectionHtml, chunk);
+                    
+                    console.log(`PaperMind: Chunk ${i + 1} processed successfully (${sectionHtml.length} chars)`);
+                    summaryHtmlList.push(sectionHtml);
+                    
+                } catch (chunkError) {
+                    console.error(`PaperMind: Error processing chunk ${i + 1}:`, chunkError);
+                    
+                    // If a chunk is too large, create a fallback HTML for that section
+                    const fallbackHtml = `
+                        <section class="paper-chunk error-chunk" data-section-title="${chunk.sections?.[0]?.title || 'Section'}">
+                            <header>
+                                <h3>${chunk.sections?.[0]?.title || 'Section'}</h3>
+                            </header>
+                            <div class="essentials">
+                                <p class="error-message">⚠️ This section was too large to process. ${chunkError.message}</p>
+                                <details>
+                                    <summary>View original text</summary>
+                                    <p>${chunk.sections?.[0]?.text?.substring(0, 1000) || 'No text available'}...</p>
+                                </details>
+                            </div>
+                        </section>
+                    `;
+                    summaryHtmlList.push(fallbackHtml);
+                    
+                    // Continue with next chunk instead of failing completely
+                    continue;
+                }
+            }
+            
             // Cache the result
-            this.cache.set(cacheKey, result);
-            return result;
+            this.cache.set(cacheKey, summaryHtmlList);
+            return summaryHtmlList;
 
         } catch (error) {
-            console.error('Error analyzing paper:', error);
+            console.error('PaperMind: Error analyzing paper:', error);
             return this.generateFallbackSummary(paperData);
         }
     }
 
-    createAnalysisPrompt(paperData) {
-        return `
-Analyze this research paper and provide a comprehensive summary:
+    async callPromptAPI(prompt, retryCount = 0) {
+        const MAX_RETRIES = 2;
+        
+        try {
+            console.log('PaperMind: Calling Chrome AI with prompt:', prompt.substring(0, 100) + '...');
+            console.log(`PaperMind: Prompt size: ${prompt.length} characters`);
+            
+            // Check if Chrome AI is available
+            if (!self.ChromeAIHelper.isLanguageModelAvailable(self)) {
+                console.warn('Chrome AI not available, using fallback');
+                return await this.callFallbackAI(prompt);
+            }
+            
+            // Use the global session instead of creating new ones each time
+            const session = await this.ensureSession();
+            const response = await self.ChromeAIHelper.callPromptAPI(session, prompt);
+            
+            return response;
 
-Title: ${paperData.title}
-Authors: ${paperData.authors}
-Abstract: ${paperData.abstract}
+        } catch (error) {
+            console.error('Chrome AI error:', error);
 
-Please provide:
-1. A clear overview of the paper's main contribution
-2. Key points and findings
-3. Methodology used
-4. Results and conclusions
-5. Implications and significance
-
-Format the response as a structured JSON object with the following keys:
-- overview: Brief summary of the paper's purpose and main contribution
-- keyPoints: Array of 3-5 key findings or points
-- methodology: Description of the research approach
-- results: Main results and findings
-- implications: Significance and potential impact
-    `.trim();
+            // For other errors, try recreating the session once
+            if (retryCount < MAX_RETRIES) {
+                console.log(`PaperMind: Retrying with fresh session (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+                await this.recreateSession();
+                return await this.callPromptAPI(prompt, retryCount + 1);
+            }
+            
+            // After retries exhausted, use fallback
+            console.warn('PaperMind: All retries exhausted, using fallback');
+            throw new Error('error calling chrome');
+        }
     }
 
-    async callChromeAI(prompt) {
-        // This is a placeholder for Chrome's built-in AI API
-        // In the actual implementation, this would use Chrome's AI APIs
-
+    async summarizeWithChromeAI(text, options = {}) {
+        /**
+         * Use Chrome's Summarizer API for efficient text summarization
+         * This is more optimized than the general language model for summaries
+         */
         try {
-            // Simulate AI processing delay
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            const ai = self.ai || chrome.aiOriginTrial?.summarizer;
+            
+            if (!ai?.summarizer) {
+                console.warn('Summarizer API not available');
+                return null;
+            }
 
-            // For now, return a structured response
-            // In production, this would call the actual Chrome AI API
-            return {
-                overview: "This paper presents a novel approach to the research problem, introducing innovative methods and achieving significant results.",
-                keyPoints: [
-                    "Novel methodology with improved performance",
-                    "Significant experimental validation",
-                    "Practical applications demonstrated",
-                    "Theoretical contributions to the field"
-                ],
-                methodology: "The research employs a systematic approach combining theoretical analysis with experimental validation.",
-                results: "The experiments demonstrate clear improvements over existing methods, with statistically significant results.",
-                implications: "This work opens new directions for future research and has practical applications in the field."
-            };
+            // Check summarizer capabilities
+            const canSummarize = await ai.summarizer.capabilities();
+            
+            if (canSummarize.available === "no") {
+                console.warn('Summarizer not available');
+                return null;
+            }
+
+            // Create summarizer with options
+            const summarizer = await ai.summarizer.create({
+                type: options.type || "tl;dr", // Options: "tl;dr", "key-points", "teaser", "headline"
+                format: options.format || "markdown",
+                length: options.length || "medium" // Options: "short", "medium", "long"
+            });
+
+            // Generate summary
+            const summary = await summarizer.summarize(text);
+            
+            // Clean up
+            await summarizer.destroy();
+            console.log('Summarizer summary:', summary);
+            return summary;
+
         } catch (error) {
-            throw new Error('AI processing failed: ' + error.message);
+            console.error('Summarizer error:', error);
+            return null;
         }
     }
 
@@ -138,8 +448,8 @@ Format the response as a structured JSON object with the following keys:
         }
 
         try {
-            const questionPrompt = this.createQuestionPrompt(question, paperData);
-            const answer = await this.callChromeAI(questionPrompt);
+            const questionPrompt = self.Prompts.askQuestion(question, paperData);
+            const answer = await this.callPromptAPI(questionPrompt);
 
             this.cache.set(cacheKey, answer);
             return answer;
@@ -150,22 +460,10 @@ Format the response as a structured JSON object with the following keys:
         }
     }
 
-    createQuestionPrompt(question, paperData) {
-        return `
-Based on this research paper, answer the following question: "${question}"
-
-Paper Context:
-Title: ${paperData.title}
-Abstract: ${paperData.abstract}
-
-Please provide a clear, accurate answer based on the paper's content. If the question cannot be answered from the paper, please say so.
-    `.trim();
-    }
-
     async processText(prompt, text) {
         try {
-            const fullPrompt = `${prompt}\n\nText: "${text}"`;
-            const result = await this.callChromeAI(fullPrompt);
+            const fullPrompt = self.Prompts.processText(prompt, text);
+            const result = await this.callPromptAPI(fullPrompt);
             return result;
         } catch (error) {
             console.error('Error processing text:', error);
@@ -175,28 +473,13 @@ Please provide a clear, accurate answer based on the paper's content. If the que
 
     async generateDiagram(concept, paperData) {
         try {
-            const diagramPrompt = this.createDiagramPrompt(concept, paperData);
-            const diagram = await this.callChromeAI(diagramPrompt);
+            const diagramPrompt = self.Prompts.generateDiagram(concept, paperData);
+            const diagram = await this.callPromptAPI(diagramPrompt);
             return diagram;
         } catch (error) {
             console.error('Error generating diagram:', error);
             return null;
         }
-    }
-
-    createDiagramPrompt(concept, paperData) {
-        return `
-Create a visual diagram or flowchart to explain this concept: "${concept}"
-
-Based on the paper: ${paperData.title}
-Abstract: ${paperData.abstract}
-
-Please provide a description of a diagram that would help visualize this concept, including:
-- Main components or elements
-- Relationships between components
-- Flow or process steps
-- Key labels and annotations
-    `.trim();
     }
 
     // Fallback methods for when AI is not available
@@ -283,4 +566,21 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace === 'sync') {
         console.log('PaperMind settings updated:', changes);
     }
+});
+
+// Cleanup when service worker is about to be terminated
+// Note: Chrome service workers are terminated after ~30 seconds of inactivity
+// The session timeout (5 minutes) handles most cleanup, but this is a safety net
+if (typeof chrome !== 'undefined' && chrome.runtime) {
+    // Listen for extension being suspended
+    chrome.runtime.onSuspend?.addListener(() => {
+        console.log('PaperMind: Service worker suspending, cleaning up...');
+        paperMindAI.destroyGlobalSession();
+    });
+}
+
+// Also cleanup on unload (for testing in dev mode)
+self.addEventListener('beforeunload', () => {
+    console.log('PaperMind: Service worker unloading, cleaning up...');
+    paperMindAI.destroyGlobalSession();
 });
