@@ -1,0 +1,823 @@
+body.papermind-enhanced-mode .papermind-original {
+    display: none;
+}
+
+/* Notification Styles */
+.papermind-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    z-index: 10005;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 400px;
+    animation: slideIn 0.3s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.papermind-notification.fade-out {
+    animation: slideOut 0.3s ease forwards;
+}
+
+.notification-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.notification-message {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+.notification-success {
+    border-left: 4px solid #28a745;
+}
+
+.notification-error {
+    border-left: 4px solid #dc3545;
+}
+
+.notification-warning {
+    border-left: 4px solid #ffc107;
+}
+
+.notification-info {
+    border-left: 4px solid #17a2b8;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+
+    /* Expandable Panel Dark Mode */
+    .papermind-expandable-panel {
+        background: #2d2d2d;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    }
+
+    .progress-section {
+        background: #1f1f1f;
+    }
+
+    .progress-section .progress-status p,
+    .progress-section .progress-stats,
+    .progress-section .progress-ai-info {
+        color: #ccc;
+    }
+
+    .progress-section .progress-bar {
+        background: #444;
+    }
+
+    .progress-section .progress-ai-info {
+        border-top-color: #444;
+    }
+
+    .papermind-panel {
+        background: #1a1a1a;
+        color: #e0e0e0;
+    }
+
+    .panel-content {
+        background: #2d2d2d;
+    }
+
+    .summary-section {
+        background: #333;
+        color: #e0e0e0;
+    }
+
+    .summary-section h4 {
+        color: #fff;
+    }
+
+    .summary-section p,
+    .summary-section li {
+        color: #ccc;
+    }
+
+    .interactive-section {
+        background: #333;
+    }
+
+    .question-input input {
+        background: #444;
+        border-color: #555;
+        color: #e0e0e0;
+    }
+
+    .qa-section {
+        background: #2d2d2d;
+    }
+
+    .question {
+        color: #e0e0e0;
+    }
+
+    .answer {
+        color: #ccc;
+    }
+
+    .diagram-content {
+        background: #2d2d2d;
+        color: #e0e0e0;
+    }
+
+    .diagram-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .diagram-description h5,
+    .diagram-components h5,
+    .diagram-relationships h5 {
+        color: #e0e0e0;
+    }
+
+    .diagram-description p,
+    .diagram-relationships p {
+        color: #ccc;
+    }
+
+    .diagram-components li {
+        color: #ccc;
+    }
+
+    .diagram-actions {
+        border-color: #555;
+    }
+
+    /* Dark mode for progress panel */
+    .papermind-progress-panel {
+        background: #2d2d2d;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    }
+
+    .papermind-progress-panel .progress-status p {
+        color: #ccc;
+    }
+
+    .papermind-progress-panel .progress-bar {
+        background: #444;
+    }
+
+    .papermind-progress-panel .progress-stats {
+        color: #ccc;
+    }
+
+    .papermind-progress-panel .progress-ai-info {
+        border-top-color: #444;
+        color: #ccc;
+    }
+
+    /* Dark mode for notifications */
+    .papermind-notification {
+        background: #2d2d2d;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .notification-message {
+        color: #e0e0e0;
+    }
+}
+
+/* Enhanced Paper Rendering Styles */
+.papermind-enhanced-paper {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #ffffff;
+    min-height: 100vh;
+}
+
+.papermind-paper-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.papermind-paper-header .paper-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 16px 0;
+    line-height: 1.3;
+}
+
+.papermind-paper-header .paper-authors {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 16px;
+}
+
+.papermind-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 12px;
+}
+
+.papermind-sections-container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* Paper Chunk Styles */
+.paper-chunk {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.3s ease;
+}
+
+.paper-chunk:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.paper-chunk header {
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #667eea;
+}
+
+.paper-chunk header h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+/* Essentials Section */
+.paper-chunk .essentials {
+    background: #f8f9fa;
+    border-left: 4px solid #667eea;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+.paper-chunk .essentials ul {
+    margin: 0;
+    padding-left: 20px;
+    list-style: none;
+}
+
+.paper-chunk .essentials li {
+    margin-bottom: 12px;
+    color: #333;
+    font-size: 15px;
+    line-height: 1.6;
+    position: relative;
+    padding-left: 8px;
+}
+
+.paper-chunk .essentials li::before {
+    content: "▸";
+    position: absolute;
+    left: -12px;
+    color: #667eea;
+    font-weight: bold;
+}
+
+/* Markdown elements in essentials */
+.paper-chunk .essentials strong,
+.paper-chunk .essentials b {
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.paper-chunk .essentials em,
+.paper-chunk .essentials i {
+    font-style: italic;
+    color: #444;
+}
+
+.paper-chunk .essentials code {
+    background: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #c7254e;
+}
+
+.paper-chunk .essentials a {
+    color: #667eea;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.paper-chunk .essentials a:hover {
+    border-bottom-color: #667eea;
+}
+
+/* Equations Section */
+.paper-chunk .equations {
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
+
+.paper-chunk .equations pre {
+    margin: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: #333;
+    white-space: pre-wrap;
+}
+
+.paper-chunk .equations:empty {
+    display: none;
+}
+
+/* Details/More Section */
+.paper-chunk .more {
+    margin-bottom: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.paper-chunk .more summary {
+    background: #f8f9fa;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #667eea;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.paper-chunk .more summary:hover {
+    background: #e9ecef;
+}
+
+.paper-chunk .more ul {
+    margin: 0;
+    padding: 16px 20px 16px 40px;
+    background: white;
+}
+
+.paper-chunk .more li {
+    margin-bottom: 8px;
+    color: #555;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Markdown elements in details/more section */
+.paper-chunk .more strong,
+.paper-chunk .more b {
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.paper-chunk .more em,
+.paper-chunk .more i {
+    font-style: italic;
+    color: #444;
+}
+
+.paper-chunk .more code {
+    background: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #c7254e;
+}
+
+.paper-chunk .more a {
+    color: #667eea;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.paper-chunk .more a:hover {
+    border-bottom-color: #667eea;
+}
+
+/* Provenance/Footer Section */
+.paper-chunk footer.provenance {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e0;
+    text-align: right;
+}
+
+.paper-chunk footer.provenance a {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.paper-chunk footer.provenance a:hover {
+    color: #5a6fd8;
+    text-decoration: underline;
+}
+
+/* Images and Tables Section */
+.section-images {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Style for arXiv figures */
+.section-images figure {
+    margin: 20px 0;
+    text-align: center;
+    clear: both;
+    /* Prevent figures from overlapping with floated elements */
+}
+
+.section-images figure img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-images figcaption {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #666;
+    line-height: 1.6;
+    text-align: left;
+    padding: 0 10px;
+}
+
+/* Handle floated figures from arXiv */
+.section-images figure.ltx_align_floatright {
+    float: right;
+    max-width: 50%;
+    margin: 0 0 20px 20px;
+    clear: none;
+}
+
+.section-images figure.ltx_align_floatleft {
+    float: left;
+    max-width: 50%;
+    margin: 0 20px 20px 0;
+    clear: none;
+}
+
+/* Ensure non-floated figures clear all floats */
+.section-images figure:not(.ltx_align_floatright):not(.ltx_align_floatleft) {
+    clear: both;
+    display: block;
+    max-width: 100%;
+    margin: 20px auto;
+}
+
+/* arXiv flex figure layout (for multi-panel figures) */
+.section-images .ltx_flex_figure {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 16px;
+}
+
+.section-images .ltx_flex_cell {
+    flex: 1 1 auto;
+    min-width: 200px;
+    max-width: 400px;
+}
+
+.section-images .ltx_flex_break {
+    flex-basis: 100%;
+    height: 0;
+}
+
+.section-images .ltx_figure_panel {
+    margin: 0;
+}
+
+/* Figure tags/labels */
+.section-images .ltx_tag_figure {
+    font-weight: 600;
+    color: #667eea;
+    margin-right: 4px;
+}
+
+/* arXiv citations in captions */
+.section-images .ltx_cite {
+    font-size: 12px;
+}
+
+.section-images .ltx_cite a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.section-images .ltx_cite a:hover {
+    text-decoration: underline;
+}
+
+/* Tables */
+.section-images table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 16px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-images table th,
+.section-images table td {
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    text-align: left;
+}
+
+.section-images table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+}
+
+.section-images table tr:hover {
+    background: #f8f9fa;
+}
+
+/* Responsive Design for Enhanced Paper */
+@media (max-width: 768px) {
+    .papermind-enhanced-paper {
+        padding: 20px 12px;
+    }
+
+    .papermind-paper-header .paper-title {
+        font-size: 24px;
+    }
+
+    .paper-chunk {
+        padding: 16px;
+    }
+
+    .paper-chunk header h3 {
+        font-size: 20px;
+    }
+
+    /* Make flex figures stack on mobile */
+    .section-images .ltx_flex_figure {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .section-images .ltx_flex_cell {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Disable float on mobile for better readability */
+    .section-images figure.ltx_align_floatright,
+    .section-images figure.ltx_align_floatleft {
+        float: none;
+        max-width: 100%;
+        margin: 20px auto;
+        clear: both;
+    }
+}
+
+/* Dark Mode Support for Enhanced Paper */
+@media (prefers-color-scheme: dark) {
+    .papermind-enhanced-paper {
+        background: #1a1a1a;
+    }
+
+    .papermind-paper-header {
+        border-bottom-color: #333;
+    }
+
+    .papermind-paper-header .paper-title {
+        color: #e0e0e0;
+    }
+
+    .papermind-paper-header .paper-authors {
+        color: #999;
+    }
+
+    .paper-chunk {
+        background: #2d2d2d;
+        border-color: #444;
+    }
+
+    .paper-chunk header {
+        border-bottom-color: #667eea;
+    }
+
+    .paper-chunk header h3 {
+        color: #e0e0e0;
+    }
+
+    .paper-chunk .essentials {
+        background: #1f1f1f;
+    }
+
+    .paper-chunk .essentials li {
+        color: #ccc;
+    }
+
+    .paper-chunk .equations {
+        background: #1f1f1f;
+        border-color: #444;
+    }
+
+    .paper-chunk .equations pre {
+        color: #ccc;
+    }
+
+    .paper-chunk .more {
+        border-color: #444;
+    }
+
+    .paper-chunk .more summary {
+        background: #1f1f1f;
+        color: #667eea;
+    }
+
+    .paper-chunk .more summary:hover {
+        background: #333;
+    }
+
+    .paper-chunk .more ul {
+        background: #2d2d2d;
+    }
+
+    .paper-chunk .more li {
+        color: #aaa;
+    }
+
+    /* Markdown elements in dark mode */
+    .paper-chunk .essentials strong,
+    .paper-chunk .essentials b,
+    .paper-chunk .more strong,
+    .paper-chunk .more b {
+        color: #e0e0e0;
+    }
+
+    .paper-chunk .essentials em,
+    .paper-chunk .essentials i,
+    .paper-chunk .more em,
+    .paper-chunk .more i {
+        color: #ccc;
+    }
+
+    .paper-chunk .essentials code,
+    .paper-chunk .more code {
+        background: #1f1f1f;
+        color: #ff6b9d;
+    }
+
+    .paper-chunk footer.provenance {
+        border-top-color: #444;
+    }
+
+    .section-images {
+        border-top-color: #444;
+    }
+
+    .section-images figcaption {
+        color: #999;
+    }
+
+    .section-images .ltx_tag_figure {
+        color: #667eea;
+    }
+
+    .section-images .ltx_cite a {
+        color: #667eea;
+    }
+
+    .section-images table th,
+    .section-images table td {
+        border-color: #444;
+    }
+
+    .section-images table th {
+        background: #1f1f1f;
+        color: #ccc;
+    }
+
+    .section-images table tr:hover {
+        background: #333;
+    }
+}
+
+/* ===============================================
+   NEW: Explanation Prompt Dialog
+   =============================================== */
+
+.papermind-explanation-prompt {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.prompt-dialog {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.prompt-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.prompt-header h4 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.prompt-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;

@@ -1,0 +1,82 @@
+/* PaperMind Base Styles */
+/* Variables, resets, and notifications */
+
+:root {
+    --pm-primary: #667eea;
+    --pm-secondary: #764ba2;
+    --pm-bg: white;
+    --pm-text: #212529;
+    --pm-border: #dee2e6;
+    --pm-shadow: rgba(0, 0, 0, 0.15);
+    --pm-radius: 12px;
+}
+
+/* Notifications */
+.papermind-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: var(--pm-bg);
+    padding: 16px 20px;
+    border-radius: var(--pm-radius);
+    box-shadow: 0 6px 20px var(--pm-shadow);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.papermind-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.papermind-notification.success {
+    border-left: 4px solid #28a745;
+}
+
+.papermind-notification.error {
+    border-left: 4px solid #dc3545;
+}
+
+.papermind-notification.info {
+    border-left: 4px solid #17a2b8;
+}
+
+.papermind-notification.warning {
+    border-left: 4px solid #ffc107;
+}
+
+.notification-icon {
+    font-size: 20px;
+}
+
+.notification-message {
+    color: var(--pm-text);
+}
+
+/* Common utilities */
+.hidden {
+    display: none !important;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --pm-bg: #2d2d2d;
+        --pm-text: #e0e0e0;
+        --pm-border: #444;
+        --pm-shadow: rgba(0, 0, 0, 0.5);
+    }
+
+    .papermind-notification {
+        background: var(--pm-bg);
+        color: var(--pm-text);
+    }
+}

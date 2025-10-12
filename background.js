@@ -22,7 +22,7 @@ class PaperMindAI {
         const jsonStr = JSON.stringify(chunk);
         const textContent = chunk.sections?.map(s => s.text || '').join(' ') || '';
         const imageCount = chunk.sections?.reduce((sum, s) => sum + (s.images?.length || 0), 0) || 0;
-        
+
         return {
             totalChars: jsonStr.length,
             textChars: textContent.length,
@@ -45,7 +45,7 @@ class PaperMindAI {
 
         const chunks = [];
         const sections = paperData.sections;
-        
+
         // Split sections into chunks
         for (let i = 0; i < sections.length; i += sectionsPerChunk) {
             const chunk = {
@@ -95,12 +95,12 @@ class PaperMindAI {
         if (!htmlStr || typeof htmlStr !== 'string') {
             return htmlStr;
         }
-        
+
         // Check if the string starts with ``` (markdown code block)
         if (htmlStr.startsWith('```')) {
             // Remove the first ```html (7 characters) or ```HTML or just ```
             let cleaned = htmlStr;
-            
+
             // Check for ```html or ```HTML
             if (htmlStr.startsWith('```html')) {
                 cleaned = htmlStr.slice(7);
@@ -115,16 +115,16 @@ class PaperMindAI {
                     cleaned = htmlStr.slice(3);
                 }
             }
-            
+
             // Remove the last ```
             if (cleaned.endsWith('```')) {
                 cleaned = cleaned.slice(0, -3);
             }
-            
+
             // Trim any extra whitespace
             return cleaned.trim();
         }
-        
+
         return htmlStr;
     }
 
@@ -141,10 +141,10 @@ class PaperMindAI {
 
         // Collect all figure HTML from sections
         let figuresHtml = '';
-        
+
         chunk.sections.forEach((sectionData) => {
             if (!sectionData.images || sectionData.images.length === 0) return;
-            
+
             // Simply concatenate the stored HTML elements
             sectionData.images.forEach((imageData) => {
                 if (imageData.html) {
@@ -156,7 +156,7 @@ class PaperMindAI {
         // If there are figures, inject them before the footer
         if (figuresHtml) {
             const imagesSection = `<div class="section-images">${figuresHtml}</div>`;
-            
+
             // Insert before </footer> if exists, otherwise before </section>
             if (sectionHtml.includes('</footer>')) {
                 sectionHtml = sectionHtml.replace('</footer>', `${imagesSection}</footer>`);
@@ -192,10 +192,10 @@ class PaperMindAI {
                 throw error;
             }
         }
-        
+
         // Reset the timeout every time we use the session
         this.resetSessionTimeout();
-        
+
         return this.globalSession;
     }
 
@@ -226,7 +226,7 @@ class PaperMindAI {
             }
             this.globalSession = null;
         }
-        
+
         if (this.sessionTimeout) {
             clearTimeout(this.sessionTimeout);
             this.sessionTimeout = null;
@@ -253,8 +253,11 @@ class PaperMindAI {
         try {
             switch (request.action) {
                 case 'analyzePaper':
+                    // Store sender info for progress updates
+                    this.currentTab = sender.tab;
                     const summary = await this.analyzePaper(request.paperData);
                     sendResponse({ summary });
+                    this.currentTab = null; // Clear after completion
                     break;
 
                 case 'askQuestion':
@@ -281,6 +284,25 @@ class PaperMindAI {
         }
     }
 
+    /**
+     * Send progress update to the content script
+     * @param {number} current - Current section number
+     * @param {number} total - Total number of sections
+     * @param {string} message - Status message
+     */
+    sendProgressUpdate(current, total, message) {
+        if (this.currentTab && this.currentTab.id) {
+            chrome.tabs.sendMessage(this.currentTab.id, {
+                action: 'progressUpdate',
+                current: current,
+                total: total,
+                message: message
+            }).catch(err => {
+                console.log('Failed to send progress update:', err);
+            });
+        }
+    }
+
     async analyzePaper(paperData) {
         const cacheKey = `analysis_${paperData.url}`;
 
@@ -292,45 +314,68 @@ class PaperMindAI {
         try {
             console.log('PaperMind: Starting paper analysis...');
             console.log('PaperData:', { title: paperData.title, sections: paperData.sections?.length });
-            
+
             const paperDataChunks = this.chunkPaperData(paperData);
-            console.log(`PaperMind: Processing ${paperDataChunks.length} chunks...`);
-            
+            const totalChunks = paperDataChunks.length;
+            console.log(`PaperMind: Processing ${totalChunks} chunks...`);
+
+            // Send initial progress
+            this.sendProgressUpdate(0, totalChunks, 'Starting paper analysis...');
+
             let summaryHtmlList = [];
-            
+
             for (let i = 0; i < paperDataChunks.length; i++) {
                 const chunk = paperDataChunks[i];
-                
+                const chunkNum = i + 1;
+
+                // Get section title for better progress messages
+                const sectionTitle = chunk.sections?.[0]?.title || `Section ${chunkNum}`;
+
+                // Send progress update at start of chunk
+                this.sendProgressUpdate(
+                    i,
+                    totalChunks,
+                    `Analyzing: ${sectionTitle}`
+                );
+
                 // Create a text-only version of the chunk (without images) for AI processing
                 const textOnlyChunk = this.createTextOnlyChunk(chunk);
-                
-                console.log(`\nPaperMind: Processing chunk ${i + 1}/${paperDataChunks.length}...`);
-                
+
+                console.log(`\nPaperMind: Processing chunk ${chunkNum}/${totalChunks}...`);
+                console.log(`PaperMind: Section: "${sectionTitle}"`);
+
                 // Log chunk size for debugging
                 const sizeInfo = this.estimateChunkSize(textOnlyChunk);
                 console.log(`PaperMind: Chunk size: ${sizeInfo.totalChars} chars (~${sizeInfo.estimatedTokens} tokens), ${sizeInfo.imageCount} images`);
                 if (sizeInfo.isLarge) {
                     console.warn(`⚠️ PaperMind: Large chunk detected (${sizeInfo.totalChars} chars) - may hit token limits`);
                 }
-                
+
                 try {
                     const analysisPrompt = self.Prompts.analyzePaper(textOnlyChunk);
-                    
+
                     // Use the updated callPromptAPI that uses global session
                     let sectionHtml = await this.callPromptAPI(analysisPrompt);
-                    
+
                     // Clean up markdown code block wrappers
                     sectionHtml = this.cleanupHtmlString(sectionHtml);
-                    
+
                     // Inject images into the generated HTML
                     sectionHtml = this.injectImagesIntoHtml(sectionHtml, chunk);
-                    
-                    console.log(`PaperMind: Chunk ${i + 1} processed successfully (${sectionHtml.length} chars)`);
+
+                    console.log(`PaperMind: Chunk ${chunkNum} processed successfully (${sectionHtml.length} chars)`);
                     summaryHtmlList.push(sectionHtml);
-                    
+
+                    // Send progress update after chunk completion
+                    this.sendProgressUpdate(
+                        chunkNum,
+                        totalChunks,
+                        `Completed: ${sectionTitle}`
+                    );
+
                 } catch (chunkError) {
                     console.error(`PaperMind: Error processing chunk ${i + 1}:`, chunkError);
-                    
+
                     // If a chunk is too large, create a fallback HTML for that section
                     const fallbackHtml = `
                         <section class="paper-chunk error-chunk" data-section-title="${chunk.sections?.[0]?.title || 'Section'}">
@@ -347,12 +392,15 @@ class PaperMindAI {
                         </section>
                     `;
                     summaryHtmlList.push(fallbackHtml);
-                    
+
                     // Continue with next chunk instead of failing completely
                     continue;
                 }
             }
-            
+
+            // Send final progress update
+            this.sendProgressUpdate(totalChunks, totalChunks, 'Analysis complete! Rendering...');
+
             // Cache the result
             this.cache.set(cacheKey, summaryHtmlList);
             return summaryHtmlList;
@@ -365,21 +413,21 @@ class PaperMindAI {
 
     async callPromptAPI(prompt, retryCount = 0) {
         const MAX_RETRIES = 2;
-        
+
         try {
             console.log('PaperMind: Calling Chrome AI with prompt:', prompt.substring(0, 100) + '...');
             console.log(`PaperMind: Prompt size: ${prompt.length} characters`);
-            
+
             // Check if Chrome AI is available
             if (!self.ChromeAIHelper.isLanguageModelAvailable(self)) {
                 console.warn('Chrome AI not available, using fallback');
                 return await this.callFallbackAI(prompt);
             }
-            
+
             // Use the global session instead of creating new ones each time
             const session = await this.ensureSession();
             const response = await self.ChromeAIHelper.callPromptAPI(session, prompt);
-            
+
             return response;
 
         } catch (error) {
@@ -391,7 +439,7 @@ class PaperMindAI {
                 await this.recreateSession();
                 return await this.callPromptAPI(prompt, retryCount + 1);
             }
-            
+
             // After retries exhausted, use fallback
             console.warn('PaperMind: All retries exhausted, using fallback');
             throw new Error('error calling chrome');
@@ -405,7 +453,7 @@ class PaperMindAI {
          */
         try {
             const ai = self.ai || chrome.aiOriginTrial?.summarizer;
-            
+
             if (!ai?.summarizer) {
                 console.warn('Summarizer API not available');
                 return null;
@@ -413,7 +461,7 @@ class PaperMindAI {
 
             // Check summarizer capabilities
             const canSummarize = await ai.summarizer.capabilities();
-            
+
             if (canSummarize.available === "no") {
                 console.warn('Summarizer not available');
                 return null;
@@ -428,7 +476,7 @@ class PaperMindAI {
 
             // Generate summary
             const summary = await summarizer.summarize(text);
-            
+
             // Clean up
             await summarizer.destroy();
             console.log('Summarizer summary:', summary);

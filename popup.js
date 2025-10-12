@@ -99,23 +99,6 @@ class PaperMindPopup {
             this.showSettings();
         });
 
-        // Quick action buttons
-        document.getElementById('summarize-btn').addEventListener('click', () => {
-            this.performQuickAction('summarize');
-        });
-
-        document.getElementById('explain-btn').addEventListener('click', () => {
-            this.performQuickAction('explain');
-        });
-
-        document.getElementById('diagram-btn').addEventListener('click', () => {
-            this.performQuickAction('diagram');
-        });
-
-        document.getElementById('translate-btn').addEventListener('click', () => {
-            this.performQuickAction('translate');
-        });
-
         // Modal controls
         this.setupModalControls();
 
@@ -123,11 +106,6 @@ class PaperMindPopup {
         document.getElementById('help-link').addEventListener('click', (e) => {
             e.preventDefault();
             this.showHelp();
-        });
-
-        document.getElementById('feedback-link').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.openFeedback();
         });
 
         document.getElementById('about-link').addEventListener('click', (e) => {
@@ -180,7 +158,6 @@ class PaperMindPopup {
     updateUI() {
         this.updateStatus();
         this.updatePaperInfo();
-        this.updateQuickActions();
         this.updateRecentPapers();
         this.updateAISettings();
     }
@@ -216,15 +193,6 @@ class PaperMindPopup {
             paperUrl.textContent = '';
             analyzeBtn.disabled = true;
         }
-    }
-
-    updateQuickActions() {
-        const quickActions = document.querySelectorAll('.quick-action');
-        const isEnabled = this.currentPaper !== null;
-
-        quickActions.forEach(action => {
-            action.disabled = !isEnabled;
-        });
     }
 
     async updateRecentPapers() {
@@ -283,30 +251,6 @@ class PaperMindPopup {
         } catch (error) {
             console.error('Error analyzing paper:', error);
             this.showNotification('Error analyzing paper. Please try again.', 'error');
-        } finally {
-            this.setProcessingStatus(false);
-        }
-    }
-
-    async performQuickAction(action) {
-        if (!this.currentPaper) return;
-
-        try {
-            this.setProcessingStatus(true);
-
-            const response = await chrome.tabs.sendMessage(this.currentTab.id, {
-                action: 'quickAction',
-                quickAction: action
-            });
-
-            if (response && response.success) {
-                this.showNotification(`${action} action started!`, 'success');
-            } else {
-                this.showNotification(`Failed to perform ${action}. Please try again.`, 'error');
-            }
-        } catch (error) {
-            console.error(`Error performing ${action}:`, error);
-            this.showNotification(`Error performing ${action}. Please try again.`, 'error');
         } finally {
             this.setProcessingStatus(false);
         }
@@ -385,12 +329,6 @@ class PaperMindPopup {
 
     hideHelp() {
         document.getElementById('help-modal').classList.remove('show');
-    }
-
-    openFeedback() {
-        chrome.tabs.create({
-            url: 'https://github.com/your-repo/papermind/issues/new'
-        });
     }
 
     showAbout() {

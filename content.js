@@ -22,9 +22,15 @@ class PaperMind {
     init() {
         // Check if current page is a research paper
         if (this.isResearchPaper()) {
+            console.log('🧠 PaperMind: Research paper detected!');
+
+            // Extract paper content immediately (ready for analysis when user clicks)
+            this.extractPaperContent();
+            console.log('✅ PaperMind: Paper content extracted and ready for analysis');
+
+            // Create UI elements
             this.createFloatingButton();
             this.setupEventListeners();
-            this.extractPaperContent();
         }
     }
 
@@ -51,18 +57,240 @@ class PaperMind {
     }
 
     createFloatingButton() {
+        const container = document.createElement('div');
+        container.id = 'papermind-container';
+        container.className = 'papermind-container';
+
+        // Create the compact button
         const button = document.createElement('div');
         button.id = 'papermind-button';
+        button.className = 'papermind-button-compact';
         button.innerHTML = `
-      <div class="papermind-icon">🧠</div>
-      <div class="papermind-text">PaperMind</div>
-    `;
-        button.className = 'papermind-floating-button';
-        document.body.appendChild(button);
+            <div class="papermind-icon">🧠</div>
+            <div class="papermind-text">PaperMind</div>
+        `;
 
-        button.addEventListener('click', () => {
-            this.toggleSummaryPanel();
+        // Create the expandable panel (initially hidden)
+        const panel = document.createElement('div');
+        panel.id = 'papermind-expandable-panel';
+        panel.className = 'papermind-expandable-panel hidden';
+        panel.innerHTML = `
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="panel-icon">🧠</span>
+                    <span class="panel-title-text">PaperMind</span>
+                </div>
+                <div class="panel-header-controls">
+                    <div class="view-toggle-switch hidden" id="view-toggle-switch" title="Switch between original and enhanced view">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="view-toggle-checkbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label" id="toggle-label">Enhanced</span>
+                    </div>
+                    <button class="panel-close" title="Close">×</button>
+                </div>
+            </div>
+            <div class="panel-content">
+                <button class="action-button analyze-button" id="analyze-button">
+                    <span class="button-icon">✨</span>
+                    <span>Analyze Paper</span>
+                </button>
+                <div class="progress-section hidden" id="progress-section">
+                    <div class="progress-status">
+                        <p id="progress-message">Ready to analyze</p>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                    </div>
+                    <div class="progress-stats">
+                        <span id="progress-percent">0%</span>
+                        <span id="progress-section-count">0 / 0</span>
+                    </div>
+                    <div class="progress-ai-info">
+                        <span>✨ Gemini Nano</span>
+                        <span>🔒 Private</span>
+                    </div>
+                </div>
+                <div class="study-notes-section">
+                    <div class="notes-header">
+                        <h4>📚 Study Notes</h4>
+                        <button class="notes-download-btn" id="notes-download-btn" title="Download Notes">
+                            <span>⬇️</span>
+                        </button>
+                    </div>
+                    <div class="notes-list" id="notes-list">
+                        <p class="notes-empty">No notes yet. Highlight text and explain it to save notes.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(button);
+        container.appendChild(panel);
+        document.body.appendChild(container);
+
+        // Make container draggable
+        this.makeDraggable(container);
+
+        // Show panel on hover over container
+        container.addEventListener('mouseenter', () => {
+            panel.classList.remove('hidden');
+            button.classList.add('hidden');
         });
+
+        // Hide panel when mouse leaves container
+        container.addEventListener('mouseleave', () => {
+            // Don't hide if currently analyzing
+            if (!this.isAnalyzing) {
+                panel.classList.add('hidden');
+                button.classList.remove('hidden');
+            }
+        });
+
+        // Analyze button click
+        const analyzeButton = panel.querySelector('#analyze-button');
+        analyzeButton.addEventListener('click', () => {
+            this.analyzePaper();
+        });
+
+        // Close button
+        const closeButton = panel.querySelector('.panel-close');
+        closeButton.addEventListener('click', () => {
+            panel.classList.add('hidden');
+            button.classList.remove('hidden');
+        });
+
+        // Download notes button
+        const downloadBtn = panel.querySelector('#notes-download-btn');
+        downloadBtn.addEventListener('click', () => {
+            this.downloadStudyNotes();
+        });
+
+        // Toggle view switch
+        const toggleCheckbox = panel.querySelector('#view-toggle-checkbox');
+        toggleCheckbox.addEventListener('change', () => {
+            this.toggleEnhancedView();
+        });
+
+        // Store references
+        this.floatingButton = button;
+        this.expandablePanel = panel;
+        this.floatingContainer = container;
+
+        // Load and display existing notes
+        this.loadStudyNotes();
+    }
+
+    makeDraggable(element) {
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        // Get the button/panel header as the drag handle
+        const dragHandles = element.querySelectorAll('.papermind-button-compact, .panel-header');
+
+        dragHandles.forEach(handle => {
+            handle.addEventListener('mousedown', dragStart);
+            handle.style.cursor = 'move';
+        });
+
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', dragEnd);
+
+        function dragStart(e) {
+            // Only drag on left mouse button
+            if (e.button !== 0) return;
+
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+
+            if (e.target === dragHandles[0] || e.target === dragHandles[1] ||
+                dragHandles[0].contains(e.target) || dragHandles[1].contains(e.target)) {
+                isDragging = true;
+                element.style.transition = 'none';
+            }
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                setTranslate(currentX, currentY, element);
+            }
+        }
+
+        function dragEnd(e) {
+            if (isDragging) {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+                element.style.transition = '';
+            }
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate(${xPos}px, ${yPos}px)`;
+        }
+    }
+
+    toggleEnhancedView() {
+        const article = this.extractArticle();
+        if (!article) return;
+
+        const toggleCheckbox = document.getElementById('view-toggle-checkbox');
+        const toggleLabel = document.getElementById('toggle-label');
+        const toggleSwitch = document.getElementById('view-toggle-switch');
+        const isEnhanced = article.classList.contains('papermind-enhanced');
+
+        // Find all sections with both original and enhanced content
+        const sections = article.querySelectorAll('section.ltx_section[data-papermind-enhanced="true"]');
+
+        if (isEnhanced) {
+            // Switch to original view
+            sections.forEach(section => {
+                const originalContent = section.querySelector('.papermind-original-content');
+                const enhancedContent = section.querySelector('.papermind-enhanced-content');
+
+                if (originalContent) originalContent.style.display = 'block';
+                if (enhancedContent) enhancedContent.style.display = 'none';
+            });
+
+            article.classList.remove('papermind-enhanced');
+            article.classList.add('papermind-original');
+            if (toggleCheckbox) toggleCheckbox.checked = false;
+            if (toggleLabel) toggleLabel.textContent = 'Original';
+            if (toggleSwitch) toggleSwitch.title = 'Switch to enhanced view';
+            this.showNotification('Switched to original view', 'info');
+        } else {
+            // Switch to enhanced view
+            sections.forEach(section => {
+                const originalContent = section.querySelector('.papermind-original-content');
+                const enhancedContent = section.querySelector('.papermind-enhanced-content');
+
+                if (originalContent) originalContent.style.display = 'none';
+                if (enhancedContent) enhancedContent.style.display = 'block';
+            });
+
+            article.classList.remove('papermind-original');
+            article.classList.add('papermind-enhanced');
+            if (toggleCheckbox) toggleCheckbox.checked = true;
+            if (toggleLabel) toggleLabel.textContent = 'Enhanced';
+            if (toggleSwitch) toggleSwitch.title = 'Switch to original view';
+            this.showNotification('Switched to enhanced view', 'success');
+        }
     }
 
     extractPaperContent() {
@@ -88,13 +316,13 @@ class PaperMind {
         console.log(`   Authors: ${content.authors.substring(0, 100)}...`);
         console.log(`   Abstract: ${content.abstract.text?.substring(0, 100)}... (${content.abstract.images?.length || 0} images)`);
         console.log(`   Sections: ${content.sections?.length || 0}`);
-        
+
         content.sections?.forEach((section, idx) => {
             console.log(`     ${idx + 1}. ${section.title} (${section.images?.length || 0} images, ${section.text?.length || 0} chars)`);
         });
-        
-        const totalImages = (content.abstract.images?.length || 0) + 
-                          (content.sections?.reduce((sum, s) => sum + (s.images?.length || 0), 0) || 0);
+
+        const totalImages = (content.abstract.images?.length || 0) +
+            (content.sections?.reduce((sum, s) => sum + (s.images?.length || 0), 0) || 0);
         console.log(`   Total Images/Tables: ${totalImages}`);
     }
 
@@ -177,20 +405,20 @@ class PaperMind {
 
     extractSections(article) {
         const sections = [];
-        
+
         // Try arXiv-specific structure first
         const arxivSections = (article || document).querySelectorAll('section.ltx_section');
-        
+
         if (arxivSections.length > 0) {
             arxivSections.forEach(section => {
                 const titleElem = section.querySelector('h2.ltx_title_section, h3.ltx_title_subsection, h4.ltx_title_subsubsection');
                 const sectionId = section.getAttribute('id');
-                
+
                 if (titleElem) {
                     // Extract text content (excluding figures and tables initially)
                     const textContent = this.extractSectionText(section);
                     const images = this.extractImages(section);
-                    
+
                     sections.push({
                         id: sectionId,
                         title: this.cleanText(titleElem.textContent),
@@ -203,7 +431,7 @@ class PaperMind {
         } else {
             // Fallback to general section extraction
             const sectionSelectors = ['h2', 'h3', 'h4', '.section', '.subsection', '.paper-section'];
-            
+
             sectionSelectors.forEach(selector => {
                 const elements = (article || document).querySelectorAll(selector);
                 elements.forEach(element => {
@@ -226,7 +454,7 @@ class PaperMind {
     extractSectionText(sectionElement) {
         // Clone the section to avoid modifying the original
         const clone = sectionElement.cloneNode(true);
-        
+
         // Remove unwanted elements
         const unwantedSelectors = [
             'button',
@@ -235,18 +463,18 @@ class PaperMind {
             '.ltx_note_content', // footnotes
             '.ltx_ref' // references can be kept but cleaned
         ];
-        
+
         unwantedSelectors.forEach(selector => {
             clone.querySelectorAll(selector).forEach(el => el.remove());
         });
-        
+
         // Get text and clean it
         return this.cleanText(clone.textContent);
     }
 
     extractImages(containerElement) {
         const images = [];
-        
+
         // Find all figures, but only select top-level ones (not nested inside other figures)
         const allFigures = containerElement.querySelectorAll('figure');
         const topLevelFigures = Array.from(allFigures).filter(figure => {
@@ -260,27 +488,26 @@ class PaperMind {
             }
             return true; // This is a top-level figure
         });
-        
+
         topLevelFigures.forEach(figure => {
             // Store the entire figure HTML element directly
             // This preserves all structure, styling, nested subfigures, captions, etc.
             const clonedFigure = figure.cloneNode(true);
-            
-            // Remove any "Report issue" buttons that are part of arXiv's UI
+
             clonedFigure.querySelectorAll('button.sr-only').forEach(btn => btn.remove());
-            
+
             images.push({
                 type: 'figure',
                 html: clonedFigure.outerHTML
             });
         });
-        
+
         return images;
     }
 
     cleanText(text) {
         if (!text) return '';
-        
+
         return text
             .replace(/Report issue for preceding element/g, '') // Remove arXiv UI text
             .replace(/\s+/g, ' ') // Normalize whitespace
@@ -305,6 +532,10 @@ class PaperMind {
                 sendResponse({ success: true });
             } else if (request.action === 'getPaperData') {
                 sendResponse({ paperData: this.paperData });
+            } else if (request.action === 'progressUpdate') {
+                // Handle progress updates from background script
+                this.updateProgress(request.current, request.total, request.message);
+                sendResponse({ success: true });
             }
         });
     }
@@ -312,57 +543,564 @@ class PaperMind {
     showContextMenu(event) {
         if (this.highlightedText.length < 10) return;
 
-        // Remove existing context menu
-        const existingMenu = document.querySelector('.papermind-context-menu');
-        if (existingMenu) {
-            existingMenu.remove();
+        // Remove existing search bar
+        const existing = document.querySelector('.papermind-search-bar');
+        if (existing) {
+            existing.remove();
         }
 
-        const menu = document.createElement('div');
-        menu.className = 'papermind-context-menu';
-        menu.innerHTML = `
-      <div class="menu-item" data-action="explain">🤔 Explain this</div>
-      <div class="menu-item" data-action="simplify">✨ Simplify</div>
-      <div class="menu-item" data-action="summarize">📝 Summarize</div>
-    `;
+        // Store selection position
+        this.selectionRect = window.getSelection().getRangeAt(0).getBoundingClientRect();
 
-        menu.style.position = 'absolute';
-        menu.style.left = event.pageX + 'px';
-        menu.style.top = event.pageY + 'px';
+        // Create compact search bar near selection
+        const searchBar = document.createElement('div');
+        searchBar.className = 'papermind-search-bar';
+        searchBar.innerHTML = `
+            <div class="search-bar-content">
+                <button class="search-icon-btn" id="quick-search-btn" title="Quick explanation">
+                    <span class="search-icon">🔍</span>
+                </button>
+                <input type="text" 
+                       class="search-input" 
+                       id="search-input" 
+                       placeholder="Ask about this text..."
+                       autocomplete="off">
+                <button class="search-submit-btn" id="search-submit-btn" title="Ask">
+                    <span>→</span>
+                </button>
+            </div>
+        `;
 
-        document.body.appendChild(menu);
+        // Position near selection
+        searchBar.style.position = 'absolute';
+        searchBar.style.left = `${this.selectionRect.left + window.scrollX}px`;
+        searchBar.style.top = `${this.selectionRect.bottom + window.scrollY + 8}px`;
 
-        // Add click handlers
-        menu.querySelectorAll('.menu-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const action = e.target.dataset.action;
-                this.handleContextAction(action);
-                menu.remove();
-            });
+        document.body.appendChild(searchBar);
+
+        const input = searchBar.querySelector('#search-input');
+        const quickBtn = searchBar.querySelector('#quick-search-btn');
+        const submitBtn = searchBar.querySelector('#search-submit-btn');
+
+        // Quick search button (default explanation)
+        quickBtn.addEventListener('click', () => {
+            this.generateExplanation('default', '');
+            searchBar.remove();
         });
 
-        // Remove menu when clicking elsewhere
+        // Submit custom question
+        const handleSubmit = () => {
+            const question = input.value.trim();
+            if (question) {
+                this.generateExplanation('custom', question);
+            } else {
+                this.generateExplanation('default', '');
+            }
+            searchBar.remove();
+        };
+
+        submitBtn.addEventListener('click', handleSubmit);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSubmit();
+        });
+
+        // Auto-focus input
+        setTimeout(() => input.focus(), 50);
+
+        // Remove on click outside
         setTimeout(() => {
-            document.addEventListener('click', () => {
-                menu.remove();
+            document.addEventListener('click', (e) => {
+                if (!searchBar.contains(e.target)) {
+                    searchBar.remove();
+                }
             }, { once: true });
         }, 100);
     }
 
-    handleContextAction(action) {
-        if (!this.highlightedText) return;
 
-        const prompt = this.getContextPrompt(action);
-        this.sendToAI(prompt, this.highlightedText);
+    async generateExplanation(mode, customPrompt = '') {
+        // Show side panel for results (non-blocking)
+        this.showKnowledgePanel('loading');
+
+        try {
+            let fullPrompt;
+            if (mode === 'custom' && customPrompt) {
+                fullPrompt = `${customPrompt}
+
+Context from paper: "${this.highlightedText}"
+
+Provide a detailed explanation including:
+1. Background knowledge needed to understand this
+2. What this means in the context of the paper
+3. Why this technique/concept is used here
+4. Key takeaways (bullet points)`;
+            } else {
+                fullPrompt = `Analyze this text from a research paper and provide:
+
+Text: "${this.highlightedText}"
+
+1. **Background Knowledge**: What concepts/theories are needed to understand this?
+2. **Explanation**: What does this mean in plain language?
+3. **Context in Paper**: Why is this used here? What problem does it solve?
+4. **Examples**: Real-world applications or analogies
+5. **Key Points**: 3-5 bullet points summarizing the most important takeaways
+
+Format as structured sections with clear headings.`;
+            }
+
+            const response = await chrome.runtime.sendMessage({
+                action: 'processText',
+                prompt: fullPrompt,
+                text: this.highlightedText
+            });
+
+            if (response && response.result) {
+                const keyPoints = this.extractKeyPoints(response.result);
+
+                this.showKnowledgePanel('result', {
+                    fullExplanation: response.result,
+                    keyPoints: keyPoints,
+                    question: customPrompt || 'Quick Explanation',
+                    selectedText: this.highlightedText
+                });
+            }
+        } catch (error) {
+            console.error('Error generating explanation:', error);
+            this.showKnowledgePanel('error', { message: error.message });
+        }
     }
 
-    getContextPrompt(action) {
-        const prompts = {
-            explain: "Explain this highlighted text in simple terms, focusing on the key concepts and their importance:",
-            simplify: "Simplify this highlighted text to make it more accessible to a general audience:",
-            summarize: "Provide a concise summary of this highlighted text, highlighting the main points:"
-        };
-        return prompts[action] || prompts.explain;
+    extractKeyPoints(text) {
+        // Extract bullet points or numbered items from the response
+        const lines = text.split('\n');
+        const keyPoints = [];
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            // Match bullet points, numbered lists, or "Key Points" section
+            if (trimmed.match(/^[\-\*•]\s+/) || trimmed.match(/^\d+\.\s+/) ||
+                (trimmed.startsWith('-') && trimmed.length > 10)) {
+                const cleaned = trimmed.replace(/^[\-\*•\d\.]\s+/, '').trim();
+                if (cleaned.length > 20 && cleaned.length < 300) {
+                    keyPoints.push(cleaned);
+                }
+            }
+        }
+
+        // If no points found, extract first few sentences
+        if (keyPoints.length === 0) {
+            const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+            return sentences.slice(0, 3).map(s => s.trim());
+        }
+
+        return keyPoints.slice(0, 5); // Max 5 key points
+    }
+
+    showKnowledgePanel(state, data = {}) {
+        let panel = document.querySelector('.papermind-knowledge-panel');
+
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.className = 'papermind-knowledge-panel';
+            panel.innerHTML = `
+                <div class="knowledge-panel-header">
+                    <span class="panel-title">🔍 Knowledge Assistant</span>
+                    <button class="panel-minimize" title="Minimize">−</button>
+                    <button class="panel-close" title="Close">×</button>
+                </div>
+                <div class="knowledge-panel-body">
+                    <div class="panel-content"></div>
+                </div>
+            `;
+            document.body.appendChild(panel);
+
+            // Make it draggable
+            this.makeKnowledgePanelDraggable(panel);
+
+            // Setup header buttons
+            panel.querySelector('.panel-close').addEventListener('click', () => {
+                panel.remove();
+            });
+
+            panel.querySelector('.panel-minimize').addEventListener('click', () => {
+                panel.classList.toggle('minimized');
+            });
+        }
+
+        const contentDiv = panel.querySelector('.panel-content');
+
+        if (state === 'loading') {
+            contentDiv.innerHTML = `
+                <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>Analyzing text...</p>
+                </div>
+            `;
+        } else if (state === 'result') {
+            const { fullExplanation, keyPoints, question, selectedText } = data;
+
+            contentDiv.innerHTML = `
+                <div class="knowledge-result">
+                    <div class="selected-text-preview">
+                        <strong>Selected:</strong> "${selectedText.substring(0, 100)}${selectedText.length > 100 ? '...' : ''}"
+                    </div>
+                    
+                    <div class="full-explanation">
+                        <h4>📚 Explanation</h4>
+                        <div class="explanation-text">${this.formatExplanation(fullExplanation)}</div>
+                    </div>
+                    
+                    <div class="key-points-section">
+                        <h4>💡 Key Points to Remember</h4>
+                        <div class="key-points-list" contenteditable="true" id="editable-key-points">
+                            ${keyPoints.map(point => `<div class="key-point">• ${point}</div>`).join('')}
+                        </div>
+                        <div class="key-points-hint">Click to edit these notes before saving</div>
+                    </div>
+                    
+                    <div class="panel-actions">
+                        <button class="btn-followup">💬 Ask Follow-up</button>
+                        <button class="btn-save-notes">💾 Save to Notes</button>
+                    </div>
+                </div>
+            `;
+
+            // Setup action buttons
+            contentDiv.querySelector('.btn-followup').addEventListener('click', () => {
+                this.showFollowUpInPanel(panel, {
+                    originalText: selectedText,
+                    previousExplanation: fullExplanation
+                });
+            });
+
+            contentDiv.querySelector('.btn-save-notes').addEventListener('click', () => {
+                const editableDiv = contentDiv.querySelector('#editable-key-points');
+                const editedKeyPoints = Array.from(editableDiv.querySelectorAll('.key-point'))
+                    .map(el => el.textContent.replace(/^[•\-\*]\s*/, '').trim())
+                    .filter(p => p.length > 0);
+
+                this.saveToStudyNotes({
+                    selectedText: selectedText,
+                    prompt: question,
+                    keyPoints: editedKeyPoints,
+                    fullExplanation: fullExplanation,
+                    timestamp: new Date().toISOString(),
+                    paperTitle: this.paperData?.title || document.title,
+                    paperUrl: window.location.href
+                });
+
+                this.showNotification('Saved to study notes ✓', 'success');
+                this.loadStudyNotes(); // Refresh notes in main panel
+            });
+
+        } else if (state === 'error') {
+            contentDiv.innerHTML = `
+                <div class="error-state">
+                    <span class="error-icon">⚠️</span>
+                    <p>Failed to generate explanation</p>
+                    <small>${data.message || 'Please try again'}</small>
+                </div>
+            `;
+        }
+
+        // Show and position panel
+        panel.classList.remove('minimized');
+        panel.style.display = 'flex';
+    }
+
+    makeKnowledgePanelDraggable(panel) {
+        const header = panel.querySelector('.knowledge-panel-header');
+        let isDragging = false;
+        let currentX, currentY, initialX, initialY;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('panel-close') ||
+                e.target.classList.contains('panel-minimize')) return;
+
+            isDragging = true;
+            initialX = e.clientX - (parseInt(panel.style.right) || 20);
+            initialY = e.clientY - (parseInt(panel.style.top) || 100);
+            header.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+            panel.style.right = 'auto';
+            panel.style.left = currentX + 'px';
+            panel.style.top = currentY + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            header.style.cursor = 'grab';
+        });
+    }
+
+    showFollowUpInPanel(panel, context) {
+        const contentDiv = panel.querySelector('.panel-content');
+
+        contentDiv.innerHTML = `
+            <div class="followup-section">
+                <div class="followup-context">
+                    <strong>Context:</strong> "${context.originalText.substring(0, 100)}..."
+                </div>
+                <div class="followup-input-area">
+                    <textarea class="followup-input" 
+                              placeholder="Ask a follow-up question..."
+                              rows="3"></textarea>
+                    <div class="followup-buttons">
+                        <button class="btn-back">← Back</button>
+                        <button class="btn-submit-followup">Ask →</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const textarea = contentDiv.querySelector('.followup-input');
+        const submitBtn = contentDiv.querySelector('.btn-submit-followup');
+        const backBtn = contentDiv.querySelector('.btn-back');
+
+        submitBtn.addEventListener('click', async () => {
+            const question = textarea.value.trim();
+            if (!question) return;
+
+            // Show loading
+            this.showKnowledgePanel('loading');
+
+            // Generate follow-up answer
+            const prompt = `Previous question about: "${context.originalText}"
+
+Previous explanation: ${context.previousExplanation}
+
+Follow-up question: ${question}
+
+Provide a focused answer to the follow-up question, building on the previous explanation.`;
+
+            try {
+                const response = await chrome.runtime.sendMessage({
+                    action: 'processText',
+                    prompt: prompt,
+                    text: context.originalText
+                });
+
+                if (response && response.result) {
+                    const keyPoints = this.extractKeyPoints(response.result);
+                    this.showKnowledgePanel('result', {
+                        fullExplanation: response.result,
+                        keyPoints: keyPoints,
+                        question: question,
+                        selectedText: context.originalText
+                    });
+                }
+            } catch (error) {
+                console.error('Follow-up error:', error);
+                this.showKnowledgePanel('error', { message: error.message });
+            }
+        });
+
+        backBtn.addEventListener('click', () => {
+            // Regenerate previous result
+            const keyPoints = this.extractKeyPoints(context.previousExplanation);
+            this.showKnowledgePanel('result', {
+                fullExplanation: context.previousExplanation,
+                keyPoints: keyPoints,
+                question: 'Previous Question',
+                selectedText: context.originalText
+            });
+        });
+
+        textarea.focus();
+    }
+
+    formatExplanation(text) {
+        // Simple formatting: convert newlines to paragraphs
+        return text.split('\n\n').map(para => `<p>${para}</p>`).join('');
+    }
+
+
+    async saveToStudyNotes(note) {
+        try {
+            const result = await chrome.storage.local.get(['studyNotes']);
+            const studyNotes = result.studyNotes || [];
+            studyNotes.push(note);
+            await chrome.storage.local.set({ studyNotes });
+            console.log('📝 Note saved to study notes');
+
+            // Update the notes display
+            this.loadStudyNotes();
+        } catch (error) {
+            console.error('Error saving study note:', error);
+        }
+    }
+
+    async loadStudyNotes() {
+        try {
+            const result = await chrome.storage.local.get(['studyNotes']);
+            const studyNotes = result.studyNotes || [];
+
+            const notesList = document.getElementById('notes-list');
+            if (!notesList) return;
+
+            if (studyNotes.length === 0) {
+                notesList.innerHTML = '<p class="notes-empty">No notes yet. Highlight text and explain it to save notes.</p>';
+                return;
+            }
+
+            // Filter notes for current paper
+            const currentPaperNotes = studyNotes.filter(note =>
+                note.paperUrl === window.location.href
+            );
+
+            if (currentPaperNotes.length === 0) {
+                notesList.innerHTML = '<p class="notes-empty">No notes for this paper yet.</p>';
+                return;
+            }
+
+            notesList.innerHTML = currentPaperNotes.map((note, index) => {
+                const keyPointsHTML = note.keyPoints && note.keyPoints.length > 0
+                    ? `<div class="note-key-points">
+                        <strong>Key Points:</strong>
+                        <ul>
+                            ${note.keyPoints.map(point => `<li>${point}</li>`).join('')}
+                        </ul>
+                    </div>`
+                    : `<div class="note-explanation">
+                        ${(note.explanation || '').substring(0, 150)}${(note.explanation || '').length > 150 ? '...' : ''}
+                    </div>`;
+
+                return `
+                    <div class="note-item" data-index="${index}">
+                        <div class="note-header">
+                            <span class="note-badge">${note.prompt}</span>
+                            <button class="note-delete" data-index="${index}">×</button>
+                        </div>
+                        <div class="note-text">
+                            <strong>Selected:</strong> "${note.selectedText.substring(0, 60)}..."
+                        </div>
+                        ${keyPointsHTML}
+                        <div class="note-footer">
+                            <small>${new Date(note.timestamp).toLocaleString()}</small>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add delete handlers
+            notesList.querySelectorAll('.note-delete').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    this.deleteStudyNote(index);
+                });
+            });
+
+        } catch (error) {
+            console.error('Error loading study notes:', error);
+        }
+    }
+
+    async deleteStudyNote(index) {
+        try {
+            const result = await chrome.storage.local.get(['studyNotes']);
+            const studyNotes = result.studyNotes || [];
+
+            // Find notes for current paper
+            const currentPaperNotes = studyNotes.filter(note =>
+                note.paperUrl === window.location.href
+            );
+
+            if (index < currentPaperNotes.length) {
+                const noteToDelete = currentPaperNotes[index];
+                const globalIndex = studyNotes.indexOf(noteToDelete);
+                studyNotes.splice(globalIndex, 1);
+                await chrome.storage.local.set({ studyNotes });
+                this.loadStudyNotes();
+                this.showNotification('Note deleted', 'info');
+            }
+        } catch (error) {
+            console.error('Error deleting note:', error);
+        }
+    }
+
+    async downloadStudyNotes() {
+        try {
+            const result = await chrome.storage.local.get(['studyNotes']);
+            const studyNotes = result.studyNotes || [];
+
+            // Filter notes for current paper
+            const currentPaperNotes = studyNotes.filter(note =>
+                note.paperUrl === window.location.href
+            );
+
+            if (currentPaperNotes.length === 0) {
+                this.showNotification('No notes to download', 'warning');
+                return;
+            }
+
+            // Format notes as markdown
+            const markdown = this.formatNotesAsMarkdown(currentPaperNotes);
+
+            // Create and download file
+            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `papermind-notes-${new Date().toISOString().split('T')[0]}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            this.showNotification('Notes downloaded successfully!', 'success');
+        } catch (error) {
+            console.error('Error downloading notes:', error);
+            this.showNotification('Failed to download notes', 'error');
+        }
+    }
+
+    formatNotesAsMarkdown(notes) {
+        const paperTitle = this.paperData?.title || document.title;
+        const paperUrl = window.location.href;
+        const date = new Date().toLocaleDateString();
+
+        let markdown = `# PaperMind Study Notes\n\n`;
+        markdown += `**Paper:** ${paperTitle}\n`;
+        markdown += `**URL:** ${paperUrl}\n`;
+        markdown += `**Date:** ${date}\n`;
+        markdown += `**Total Notes:** ${notes.length}\n\n`;
+        markdown += `---\n\n`;
+
+        notes.forEach((note, index) => {
+            markdown += `## Note ${index + 1}: ${note.prompt}\n\n`;
+            markdown += `**Selected Text:**\n> ${note.selectedText}\n\n`;
+
+            // Add key points if available
+            if (note.keyPoints && note.keyPoints.length > 0) {
+                markdown += `**Key Points:**\n`;
+                note.keyPoints.forEach(point => {
+                    markdown += `- ${point}\n`;
+                });
+                markdown += `\n`;
+            }
+
+            // Add full explanation if available
+            if (note.fullExplanation) {
+                markdown += `**Full Explanation:**\n${note.fullExplanation}\n\n`;
+            } else if (note.explanation) {
+                markdown += `**Explanation:**\n${note.explanation}\n\n`;
+            }
+
+            markdown += `**Time:** ${new Date(note.timestamp).toLocaleString()}\n\n`;
+            if (note.isFollowUp) {
+                markdown += `*This is a follow-up question*\n\n`;
+            }
+            markdown += `---\n\n`;
+        });
+
+        markdown += `\n\n*Generated by PaperMind - AI Research Assistant*\n`;
+        return markdown;
     }
 
     toggleSummaryPanel() {
@@ -402,28 +1140,194 @@ class PaperMind {
         this.analyzePaper();
     }
 
-    async analyzePaper() {
-        if (!this.paperData) {
-            this.extractPaperContent();
+    createProgressPanel() {
+        // Remove existing progress panel if any
+        const existing = document.getElementById('papermind-progress-panel');
+        if (existing) {
+            existing.remove();
         }
+
+        const panel = document.createElement('div');
+        panel.id = 'papermind-progress-panel';
+        panel.className = 'papermind-progress-panel';
+        panel.innerHTML = `
+            <div class="progress-header">
+                <div class="progress-title">
+                    <span class="progress-icon">🧠</span>
+                    <span class="progress-title-text">Analyzing Paper</span>
+                </div>
+                <button class="progress-minimize" title="Minimize">−</button>
+            </div>
+            <div class="progress-content">
+                <div class="progress-status">
+                    <p id="progress-message">Preparing to analyze...</p>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+                <div class="progress-stats">
+                    <span id="progress-percent">0%</span>
+                    <span id="progress-section">0 / 0 sections</span>
+                </div>
+                <div class="progress-ai-info">
+                    <span>✨ Gemini Nano</span>
+                    <span>🔒 Private</span>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(panel);
+
+        // Add minimize/expand functionality
+        const minimizeBtn = panel.querySelector('.progress-minimize');
+        const content = panel.querySelector('.progress-content');
+        let isMinimized = false;
+
+        minimizeBtn.addEventListener('click', () => {
+            isMinimized = !isMinimized;
+            if (isMinimized) {
+                content.style.display = 'none';
+                minimizeBtn.textContent = '+';
+                minimizeBtn.title = 'Expand';
+                panel.classList.add('minimized');
+            } else {
+                content.style.display = 'block';
+                minimizeBtn.textContent = '−';
+                minimizeBtn.title = 'Minimize';
+                panel.classList.remove('minimized');
+            }
+        });
+
+        return panel;
+    }
+
+    updateProgress(current, total, message = '') {
+        const progressFill = document.getElementById('progress-fill');
+        const progressPercent = document.getElementById('progress-percent');
+        const progressSectionCount = document.getElementById('progress-section-count');
+        const progressMessage = document.getElementById('progress-message');
+
+        if (progressFill && progressPercent && progressSectionCount) {
+            const percent = Math.round((current / total) * 100);
+            progressFill.style.width = percent + '%';
+            progressPercent.textContent = percent + '%';
+            progressSectionCount.textContent = `${current} / ${total}`;
+
+            if (message && progressMessage) {
+                progressMessage.textContent = message;
+            }
+        }
+    }
+
+    removeProgressPanel() {
+        const panel = document.getElementById('papermind-progress-panel');
+        if (panel) {
+            panel.classList.add('slide-out');
+            setTimeout(() => {
+                panel.remove();
+            }, 500);
+        }
+    }
+
+    async analyzePaper() {
+        // Double-check we have paper data (should already be extracted in init)
+        if (!this.paperData) {
+            console.warn('⚠️ PaperMind: Paper data not found, extracting now...');
+            this.extractPaperContent();
+        } else {
+            console.log('🚀 PaperMind: Starting analysis with pre-extracted content');
+        }
+
+        // Set analyzing flag
+        this.isAnalyzing = true;
+
+        // Show progress section in expandable panel
+        const progressSection = document.getElementById('progress-section');
+        const analyzeButton = document.getElementById('analyze-button');
+        if (progressSection && analyzeButton) {
+            progressSection.classList.remove('hidden');
+            analyzeButton.classList.add('hidden');
+        }
+
+        // Keep panel open during analysis
+        if (this.expandablePanel) {
+            this.expandablePanel.classList.remove('hidden');
+        }
+        if (this.floatingButton) {
+            this.floatingButton.classList.add('hidden');
+        }
+
+        // Initialize with unknown total (will be updated by background script)
+        const totalSections = this.paperData.sections?.length || 0;
+        this.updateProgress(0, totalSections || 10, 'Initializing AI analysis...');
 
         try {
             // Send paper data to background script for AI processing
+            // Progress updates will come via progressUpdate messages
             const response = await chrome.runtime.sendMessage({
                 action: 'analyzePaper',
                 paperData: this.paperData
             });
 
             if (response && response.summary) {
+                // Final update before rendering
+                this.updateProgress(totalSections, totalSections, 'Rendering enhanced paper...');
+
+                // Small delay to show the final progress
+                await new Promise(resolve => setTimeout(resolve, 500));
+
                 // Check if it's the new HTML array format or old object format
                 if (Array.isArray(response.summary)) {
                     this.renderEnhancedPaper(response.summary);
                 } else {
                     this.displaySummary(response.summary);
                 }
+
+                // Hide progress section and show analyze button
+                if (progressSection && analyzeButton) {
+                    progressSection.classList.add('hidden');
+                    analyzeButton.classList.remove('hidden');
+                }
+
+                // Reset analyzing flag
+                this.isAnalyzing = false;
+
+                // Allow panel to close on mouse leave
+                if (this.expandablePanel) {
+                    this.expandablePanel.classList.add('hidden');
+                }
+                if (this.floatingButton) {
+                    this.floatingButton.classList.remove('hidden');
+                }
+
+                // Show toggle switch in panel header
+                const toggleSwitch = document.getElementById('view-toggle-switch');
+                if (toggleSwitch) {
+                    toggleSwitch.classList.remove('hidden');
+                }
+
+                // Set to enhanced view by default
+                const toggleCheckbox = document.getElementById('view-toggle-checkbox');
+                const toggleLabel = document.getElementById('toggle-label');
+                if (toggleCheckbox) toggleCheckbox.checked = true;
+                if (toggleLabel) toggleLabel.textContent = 'Enhanced';
+
+                this.showNotification('Paper enhanced successfully! 🎉', 'success');
             }
         } catch (error) {
             console.error('PaperMind: Error analyzing paper', error);
+
+            // Hide progress section and show analyze button
+            if (progressSection && analyzeButton) {
+                progressSection.classList.add('hidden');
+                analyzeButton.classList.remove('hidden');
+            }
+
+            // Reset analyzing flag
+            this.isAnalyzing = false;
+
             this.showError('Failed to analyze paper. Please try again.');
         }
     }
@@ -444,7 +1348,7 @@ class PaperMind {
 
         // Find existing sections in the article
         const existingSections = article.querySelectorAll('section.ltx_section');
-        
+
         if (existingSections.length === 0) {
             console.error('PaperMind: No sections found in article');
             return;
@@ -455,42 +1359,48 @@ class PaperMind {
             console.warn(`PaperMind: Section count mismatch. Found ${existingSections.length} sections but received ${htmlSections.length} HTML sections`);
         }
 
+        // Store enhanced sections data
+        this.enhancedSections = htmlSections;
+
         // Replace content of each existing section with enhanced content
         const maxSections = Math.min(existingSections.length, htmlSections.length);
         for (let i = 0; i < maxSections; i++) {
             const section = existingSections[i];
             const html = htmlSections[i];
-            
+
+            // Store original content if not already stored
+            if (!section.hasAttribute('data-original-content')) {
+                section.setAttribute('data-original-content', section.innerHTML);
+            }
+
             // Parse markdown syntax in the HTML
             const parsedHtml = this.parseMarkdownInHtml(html);
-            
-            // Create a temporary container to parse the HTML
-            const tempContainer = document.createElement('div');
-            tempContainer.innerHTML = parsedHtml;
-            
-            // Find the title in the existing section (preserve it to keep section anchors working)
-            const existingTitle = section.querySelector('h2.ltx_title_section, h3.ltx_title_subsection, h4.ltx_title_subsubsection');
-            
-            // Clear the section content but keep the section element itself
-            section.innerHTML = '';
-            
-            // Re-add the original title first to maintain section navigation
-            if (existingTitle) {
-                section.appendChild(existingTitle.cloneNode(true));
-            }
-            
+
+            // Wrap original content in a container that can be hidden
+            const originalWrapper = document.createElement('div');
+            originalWrapper.className = 'papermind-original-content';
+            originalWrapper.style.display = 'none';
+            originalWrapper.innerHTML = section.innerHTML;
+
             // Add the enhanced content
             const enhancedWrapper = document.createElement('div');
             enhancedWrapper.className = 'papermind-enhanced-content';
             enhancedWrapper.innerHTML = parsedHtml;
+
+            // Clear section and add both versions
+            section.innerHTML = '';
+            section.appendChild(originalWrapper);
             section.appendChild(enhancedWrapper);
-            
+
             // Mark the section as enhanced
             section.setAttribute('data-papermind-enhanced', 'true');
         }
 
+        // Mark article as enhanced
+        article.classList.add('papermind-enhanced');
+        article.classList.remove('papermind-original');
+
         console.log('PaperMind: Enhanced paper rendered successfully');
-        this.showNotification('Paper enhanced successfully!', 'success');
     }
 
     escapeHtml(text) {
@@ -503,19 +1413,19 @@ class PaperMind {
     parseMarkdownInHtml(html) {
         // Parse markdown syntax within HTML content
         // This handles common markdown patterns that might appear in the AI-generated content
-        
+
         // Bold: **text** → <strong>text</strong>
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        
+
         // Italic: *text* → <em>text</em> (but not if it's part of **)
         html = html.replace(/(?<!\*)\*([^\*]+?)\*(?!\*)/g, '<em>$1</em>');
-        
+
         // Inline code: `code` → <code>code</code>
         html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-        
+
         // Links: [text](url) → <a href="url">text</a>
         html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-        
+
         return html;
     }
 
@@ -551,20 +1461,10 @@ class PaperMind {
           <button id="ask-question">Ask</button>
         </div>
       </div>
-      <div class="interactive-section">
-        <h4>📊 Generate Diagram</h4>
-        <div class="diagram-input">
-          <input type="text" placeholder="Enter a concept to visualize..." id="diagram-concept">
-          <button id="generate-diagram">Generate</button>
-        </div>
-      </div>
     `;
 
         // Add question functionality
         this.setupQuestionHandler();
-
-        // Add diagram functionality
-        this.setupDiagramHandler();
     }
 
     setupQuestionHandler() {
@@ -607,37 +1507,6 @@ class PaperMind {
         });
     }
 
-    setupDiagramHandler() {
-        const diagramInput = document.getElementById('diagram-concept');
-        const generateButton = document.getElementById('generate-diagram');
-
-        const generateDiagram = async () => {
-            const concept = diagramInput.value.trim();
-            if (!concept) return;
-
-            // Show loading state
-            generateButton.textContent = 'Generating...';
-            generateButton.disabled = true;
-
-            try {
-                await this.generateDiagram(concept);
-            } catch (error) {
-                console.error('PaperMind: Error generating diagram', error);
-                this.showError('Failed to generate diagram. Please try again.');
-            } finally {
-                generateButton.textContent = 'Generate';
-                generateButton.disabled = false;
-                diagramInput.value = '';
-            }
-        };
-
-        generateButton.addEventListener('click', generateDiagram);
-        diagramInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                generateDiagram();
-            }
-        });
-    }
 
     displayAnswer(question, answer) {
         const content = this.summaryPanel.querySelector('.panel-content');
@@ -655,12 +1524,38 @@ class PaperMind {
     }
 
     showError(message) {
-        const content = this.summaryPanel.querySelector('.panel-content');
-        content.innerHTML = `
-      <div class="error-message">
-        <p>❌ ${message}</p>
-      </div>
-    `;
+        this.showNotification(message, 'error');
+    }
+
+    showNotification(message, type = 'info') {
+        // Remove existing notification
+        const existing = document.querySelector('.papermind-notification');
+        if (existing) {
+            existing.remove();
+        }
+
+        const notification = document.createElement('div');
+        notification.className = `papermind-notification notification-${type}`;
+
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+
+        notification.innerHTML = `
+            <span class="notification-icon">${icons[type] || icons.info}</span>
+            <span class="notification-message">${message}</span>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 500);
+        }, 5000);
     }
 
     async sendToAI(prompt, text) {
@@ -679,134 +1574,7 @@ class PaperMind {
         }
     }
 
-    async generateDiagram(concept) {
-        if (!concept || !this.paperData) return;
 
-        try {
-            const response = await chrome.runtime.sendMessage({
-                action: 'generateDiagram',
-                concept: concept,
-                paperData: this.paperData
-            });
-
-            if (response && response.diagram) {
-                this.showDiagram(concept, response.diagram);
-            }
-        } catch (error) {
-            console.error('PaperMind: Error generating diagram', error);
-            this.showError('Failed to generate diagram. Please try again.');
-        }
-    }
-
-    showDiagram(concept, diagram) {
-        const overlay = document.createElement('div');
-        overlay.className = 'papermind-diagram-overlay';
-        overlay.innerHTML = `
-      <div class="diagram-content">
-        <div class="diagram-header">
-          <h4>📊 Diagram: ${concept}</h4>
-          <button class="close-diagram">&times;</button>
-        </div>
-        <div class="diagram-body">
-          <div class="diagram-description">
-            <h5>Visual Description:</h5>
-            <p>${diagram.description || 'AI-generated diagram description'}</p>
-          </div>
-          <div class="diagram-components">
-            <h5>Key Components:</h5>
-            <ul>
-              ${(diagram.components || []).map(comp => `<li>${comp}</li>`).join('')}
-            </ul>
-          </div>
-          <div class="diagram-relationships">
-            <h5>Relationships:</h5>
-            <p>${diagram.relationships || 'Component relationships and flow'}</p>
-          </div>
-          <div class="diagram-actions">
-            <button class="btn primary" id="export-diagram">Export as Image</button>
-            <button class="btn secondary" id="save-diagram">Save to Notes</button>
-          </div>
-        </div>
-      </div>
-    `;
-
-        document.body.appendChild(overlay);
-
-        // Add event listeners
-        overlay.querySelector('.close-diagram').addEventListener('click', () => {
-            overlay.remove();
-        });
-
-        overlay.querySelector('#export-diagram').addEventListener('click', () => {
-            this.exportDiagram(concept, diagram);
-        });
-
-        overlay.querySelector('#save-diagram').addEventListener('click', () => {
-            this.saveDiagram(concept, diagram);
-        });
-
-        // Close on outside click
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.remove();
-            }
-        });
-    }
-
-    exportDiagram(concept, diagram) {
-        // Create a simple text-based export
-        const content = `
-PaperMind Diagram Export
-=======================
-
-Concept: ${concept}
-Generated: ${new Date().toLocaleString()}
-
-Description:
-${diagram.description || 'AI-generated diagram description'}
-
-Components:
-${(diagram.components || []).map((comp, i) => `${i + 1}. ${comp}`).join('\n')}
-
-Relationships:
-${diagram.relationships || 'Component relationships and flow'}
-
----
-Generated by PaperMind AI Assistant
-    `.trim();
-
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `papermind-diagram-${concept.replace(/[^a-zA-Z0-9]/g, '-')}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    async saveDiagram(concept, diagram) {
-        try {
-            const diagramData = {
-                concept,
-                diagram,
-                timestamp: new Date().toISOString(),
-                paperTitle: this.paperData?.title || 'Unknown',
-                paperUrl: this.paperData?.url || window.location.href
-            };
-
-            const result = await chrome.storage.local.get(['savedDiagrams']);
-            const savedDiagrams = result.savedDiagrams || [];
-            savedDiagrams.push(diagramData);
-
-            await chrome.storage.local.set({ savedDiagrams });
-            this.showNotification('Diagram saved successfully!', 'success');
-        } catch (error) {
-            console.error('Error saving diagram:', error);
-            this.showNotification('Failed to save diagram', 'error');
-        }
-    }
 
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');

@@ -1,0 +1,500 @@
+/* PaperMind Content Styles */
+
+/* PaperMind Container (Draggable) */
+.papermind-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Compact Button */
+.papermind-button-compact {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 25px;
+    cursor: move;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.papermind-button-compact:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.papermind-button-compact.hidden {
+    display: none;
+}
+
+.papermind-icon {
+    font-size: 18px;
+}
+
+/* Expandable Panel */
+.papermind-expandable-panel {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    width: 320px;
+    overflow: hidden;
+    animation: expandIn 0.2s ease;
+}
+
+.papermind-expandable-panel.hidden {
+    display: none;
+}
+
+@keyframes expandIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.papermind-expandable-panel .panel-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+    user-select: none;
+}
+
+.papermind-expandable-panel .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.papermind-expandable-panel .panel-icon {
+    font-size: 18px;
+}
+
+.papermind-expandable-panel .panel-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    font-weight: normal;
+    cursor: pointer;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+    line-height: 1;
+}
+
+.papermind-expandable-panel .panel-close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.papermind-expandable-panel .panel-content {
+    padding: 16px;
+}
+
+/* Action Button */
+.action-button {
+    width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.action-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.action-button.hidden {
+    display: none;
+}
+
+.button-icon {
+    font-size: 16px;
+}
+
+/* Progress Section in Panel */
+.progress-section {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.progress-section.hidden {
+    display: none;
+}
+
+.progress-section .progress-status {
+    margin-bottom: 12px;
+}
+
+.progress-section .progress-status p {
+    margin: 0;
+    color: #666;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.progress-section .progress-bar-container {
+    margin-bottom: 10px;
+}
+
+.progress-section .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-section .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-section .progress-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #666;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.progress-section .progress-ai-info {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    padding-top: 10px;
+    border-top: 1px solid #dee2e6;
+    font-size: 11px;
+    color: #666;
+}
+
+.progress-section .progress-ai-info span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.papermind-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 400px;
+    height: 100vh;
+    background: white;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.panel-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.panel-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.panel-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #f8f9fa;
+}
+
+.summary-section {
+    background: white;
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #667eea;
+}
+
+.summary-section h4 {
+    margin: 0 0 12px 0;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.summary-section p {
+    margin: 0;
+    color: #666;
+    line-height: 1.5;
+    font-size: 13px;
+}
+
+.summary-section ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.summary-section li {
+    margin-bottom: 8px;
+    color: #666;
+    line-height: 1.4;
+    font-size: 13px;
+}
+
+.interactive-section {
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #28a745;
+}
+
+.question-input,
+.diagram-input {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.question-input input,
+.diagram-input input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.question-input input:focus,
+.diagram-input input:focus {
+    border-color: #667eea;
+}
+
+.question-input button,
+.diagram-input button {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.question-input button:hover:not(:disabled),
+.diagram-input button:hover:not(:disabled) {
+    background: #5a6fd8;
+}
+
+.question-input button:disabled,
+.diagram-input button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.qa-section {
+    background: #f8f9fa;
+    padding: 12px;
+    margin-top: 12px;
+    border-radius: 6px;
+    border-left: 3px solid #667eea;
+}
+
+.question {
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 13px;
+}
+
+.answer {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.loading {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 40px 20px;
+}
+
+.error-message {
+    text-align: center;
+    color: #dc3545;
+    padding: 40px 20px;
+}
+
+.papermind-context-menu {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10002;
+    min-width: 150px;
+    overflow: hidden;
+}
+
+.menu-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #333;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.menu-item:hover {
+    background-color: #f8f9fa;
+}
+
+.papermind-ai-response {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    z-index: 10003;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.response-content {
+    padding: 24px;
+}
+
+.response-content h4 {
+    margin: 0 0 16px 0;
+    color: #333;
+    font-size: 16px;
+}
+
+.response-content p {
+    margin: 0 0 16px 0;
+    color: #666;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.close-response {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.close-response:hover {
+    background: #5a6fd8;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+
+    /* Container positioning on mobile */
+    .papermind-container {
+        top: 10px;
+        right: 10px;
+    }
+
+    /* Compact button on mobile */
+    .papermind-button-compact {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+
+    /* Expandable panel on mobile */
+    .papermind-expandable-panel {
+        width: 280px;
+    }
+
+    .papermind-panel {
+        width: 100%;
+        height: 100vh;
+    }
+
+    .papermind-ai-response {
+        width: 95%;
+        max-width: none;
+    }
+
