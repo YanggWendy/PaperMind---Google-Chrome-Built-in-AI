@@ -184,22 +184,14 @@ class PaperMindAI {
         const prompts = {
             analysis: [{
                 role: 'system',
-                content: `You are an AI component in a pipeline that rebuilds research papers into viewer-friendly websites. 
-You receive one section at a time and output exactly one self-contained HTML element.
-You must be comprehensive, accurate, and structured in your analysis.
-Never hallucinate facts - only use information provided in the input section.
-Always extract key information including definitions, algorithms, equations, numbers, and results.`
+                content: self.Prompts.analyzePaperSystemPrompt,
             }],
             question: [{
                 role: 'system',
-                content: `You are a helpful AI assistant that answers questions about research papers.
-You provide clear, accurate answers based on the paper's content.
-If information is not available in the provided context, you clearly state that.
-You explain complex concepts in an accessible way while maintaining technical accuracy.`
+                content: self.Prompts.askQuestionSystemPrompt,
             }]
         };
-
-        return prompts[type] || prompts.analysis;
+        return prompts[type] || prompts.question;
     }
 
     /**
@@ -213,6 +205,7 @@ You explain complex concepts in an accessible way while maintaining technical ac
             console.log(`PaperMind: Creating new ${type} session with initial prompts...`);
             try {
                 // Create main session with initial system prompt for this type
+                console.log('PaperMind: Initial prompts:', this.getInitialPrompts(type));
                 this.sessions[type] = await self.ChromeAIHelper.getLanguageModel(
                     self,
                     {
