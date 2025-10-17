@@ -105,6 +105,29 @@ async function getLanguageModel(context = self, options = {}, onProgress = null)
 }
 
 /**
+ * Clone a language model session to create an independent copy
+ * The clone inherits session parameters and initial prompts but has separate context
+ * @param {Object} session - The language model session to clone
+ * @returns {Promise<Object>} A new cloned session
+ */
+async function cloneSession(session) {
+    try {
+        if (!session || typeof session.clone !== 'function') {
+            throw new Error('Session does not support cloning');
+        }
+        
+        console.log('Chrome AI Helper: Cloning session...');
+        const clonedSession = await session.clone();
+        console.log('Chrome AI Helper: Session cloned successfully');
+        return clonedSession;
+        
+    } catch (error) {
+        console.error('Chrome AI Helper: Error cloning session:', error);
+        throw error;
+    }
+}
+
+/**
  * Destroy a language model session to free resources
  * @param {Object} session - The language model session to destroy
  * @returns {Promise<void>}
@@ -164,6 +187,7 @@ if (typeof module !== 'undefined' && module.exports) {
         callPromptAPIAuto,
         isLanguageModelAvailable,
         getLanguageModel,
+        cloneSession,
         destroySession
     };
 }
@@ -175,6 +199,7 @@ if (typeof window !== 'undefined') {
         callPromptAPIAuto,
         isLanguageModelAvailable,
         getLanguageModel,
+        cloneSession,
         destroySession
     };
 }
@@ -186,6 +211,7 @@ if (typeof self !== 'undefined' && typeof window === 'undefined') {
         callPromptAPIAuto,
         isLanguageModelAvailable,
         getLanguageModel,
+        cloneSession,
         destroySession
     };
 }

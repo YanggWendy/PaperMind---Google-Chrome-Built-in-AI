@@ -8,7 +8,11 @@ class PaperMindAI {
     constructor() {
         this.setupMessageHandlers();
         this.cache = new Map();
-        this.globalSession = null;
+        // Separate main sessions for different tasks
+        this.sessions = {
+            analysis: null,  // For paper analysis with HTML output instructions
+            question: null   // For Q&A with conversational instructions
+        };
         this.sessionTimeout = null;
         this.SESSION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
     }
@@ -172,31 +176,81 @@ class PaperMindAI {
     }
 
     /**
-     * Get or create a global AI session
-     * This reuses the same session across multiple requests for better performance
-     * @returns {Promise<Object>} The language model session
+     * Get the initial prompts for a specific session type
+     * @param {string} type - Session type ('analysis' or 'question')
+     * @returns {Array} Array of initial prompt objects
      */
-    async ensureSession() {
-        if (!this.globalSession) {
-            console.log('PaperMind: Creating new global AI session...');
+    getInitialPrompts(type) {
+        const prompts = {
+            analysis: [{
+                role: 'system',
+                content: `You are an AI component in a pipeline that rebuilds research papers into viewer-friendly websites. 
+You receive one section at a time and output exactly one self-contained HTML element.
+You must be comprehensive, accurate, and structured in your analysis.
+Never hallucinate facts - only use information provided in the input section.
+Always extract key information including definitions, algorithms, equations, numbers, and results.`
+            }],
+            question: [{
+                role: 'system',
+                content: `You are a helpful AI assistant that answers questions about research papers.
+You provide clear, accurate answers based on the paper's content.
+If information is not available in the provided context, you clearly state that.
+You explain complex concepts in an accessible way while maintaining technical accuracy.`
+            }]
+        };
+
+        return prompts[type] || prompts.analysis;
+    }
+
+    /**
+     * Get or create a main AI session with initial prompts for a specific task type
+     * This main session is cloned for each individual task to keep context isolated
+     * @param {string} type - Session type ('analysis' or 'question')
+     * @returns {Promise<Object>} The main language model session
+     */
+    async ensureMainSession(type = 'analysis') {
+        if (!this.sessions[type]) {
+            console.log(`PaperMind: Creating new ${type} session with initial prompts...`);
             try {
-                this.globalSession = await self.ChromeAIHelper.getLanguageModel(
+                // Create main session with initial system prompt for this type
+                this.sessions[type] = await self.ChromeAIHelper.getLanguageModel(
                     self,
-                    {}, // options
-                    (progress) => console.log(`Model download: ${progress}%`)
+                    {
+                        initialPrompts: this.getInitialPrompts(type)
+                    },
+                    (progress) => console.log(`${type} model download: ${progress}%`)
                 );
-                console.log('PaperMind: Global session created successfully');
+                console.log(`PaperMind: ${type} session created successfully`);
             } catch (error) {
-                console.error('PaperMind: Failed to create session:', error);
-                this.globalSession = null;
+                console.error(`PaperMind: Failed to create ${type} session:`, error);
+                this.sessions[type] = null;
                 throw error;
             }
         }
 
-        // Reset the timeout every time we use the session
+        // Reset the timeout every time we use any session
         this.resetSessionTimeout();
 
-        return this.globalSession;
+        return this.sessions[type];
+    }
+
+    /**
+     * Clone a main session for an isolated task
+     * Each clone inherits the initial prompts but has independent context
+     * @param {string} type - Session type ('analysis' or 'question')
+     * @returns {Promise<Object>} A cloned language model session
+     */
+    async cloneSession(type = 'analysis') {
+        try {
+            const mainSession = await this.ensureMainSession(type);
+            console.log(`PaperMind: Cloning ${type} session for isolated task...`);
+            const clonedSession = await mainSession.clone();
+            console.log(`PaperMind: ${type} session cloned successfully`);
+            return clonedSession;
+        } catch (error) {
+            console.error(`PaperMind: Failed to clone ${type} session:`, error);
+            throw error;
+        }
     }
 
     /**
@@ -209,37 +263,45 @@ class PaperMindAI {
 
         this.sessionTimeout = setTimeout(() => {
             console.log('PaperMind: Session timeout - cleaning up...');
-            this.destroyGlobalSession();
+            this.destroyMainSession();
         }, this.SESSION_TIMEOUT_MS);
     }
 
     /**
-     * Destroy the global session to free resources
+     * Destroy main session(s) to free resources
+     * @param {string} type - Optional: specific session type to destroy ('analysis' or 'question')
+     *                        If not provided, destroys all sessions
      */
-    async destroyGlobalSession() {
-        if (this.globalSession) {
-            console.log('PaperMind: Destroying global session...');
-            try {
-                await self.ChromeAIHelper.destroySession(this.globalSession);
-            } catch (error) {
-                console.error('PaperMind: Error destroying session:', error);
+    async destroyMainSession(type = null) {
+        const typesToDestroy = type ? [type] : Object.keys(this.sessions);
+
+        for (const sessionType of typesToDestroy) {
+            if (this.sessions[sessionType]) {
+                console.log(`PaperMind: Destroying ${sessionType} session...`);
+                try {
+                    await self.ChromeAIHelper.destroySession(this.sessions[sessionType]);
+                } catch (error) {
+                    console.error(`PaperMind: Error destroying ${sessionType} session:`, error);
+                }
+                this.sessions[sessionType] = null;
             }
-            this.globalSession = null;
         }
 
-        if (this.sessionTimeout) {
+        // Only clear timeout if destroying all sessions
+        if (!type && this.sessionTimeout) {
             clearTimeout(this.sessionTimeout);
             this.sessionTimeout = null;
         }
     }
 
     /**
-     * Force recreate the session (useful after errors)
+     * Force recreate a main session (useful after errors)
+     * @param {string} type - Session type to recreate ('analysis' or 'question')
      */
-    async recreateSession() {
-        console.log('PaperMind: Recreating session...');
-        await this.destroyGlobalSession();
-        return await this.ensureSession();
+    async recreateMainSession(type = 'analysis') {
+        console.log(`PaperMind: Recreating ${type} session...`);
+        await this.destroyMainSession(type);
+        return await this.ensureMainSession(type);
     }
 
     setupMessageHandlers() {
@@ -354,8 +416,8 @@ class PaperMindAI {
                 try {
                     const analysisPrompt = self.Prompts.analyzePaper(textOnlyChunk);
 
-                    // Use the updated callPromptAPI that uses global session
-                    let sectionHtml = await this.callPromptAPI(analysisPrompt);
+                    // Use the analysis session for paper analysis
+                    let sectionHtml = await this.callPromptAPI(analysisPrompt, 'analysis');
 
                     // Clean up markdown code block wrappers
                     sectionHtml = this.cleanupHtmlString(sectionHtml);
@@ -411,11 +473,12 @@ class PaperMindAI {
         }
     }
 
-    async callPromptAPI(prompt, retryCount = 0) {
+    async callPromptAPI(prompt, sessionType = 'analysis', retryCount = 0) {
         const MAX_RETRIES = 2;
+        let clonedSession = null;
 
         try {
-            console.log('PaperMind: Calling Chrome AI with prompt:', prompt.substring(0, 100) + '...');
+            console.log(`PaperMind: Calling Chrome AI (${sessionType}) with prompt:`, prompt.substring(0, 100) + '...');
             console.log(`PaperMind: Prompt size: ${prompt.length} characters`);
 
             // Check if Chrome AI is available
@@ -424,20 +487,33 @@ class PaperMindAI {
                 return await this.callFallbackAI(prompt);
             }
 
-            // Use the global session instead of creating new ones each time
-            const session = await this.ensureSession();
-            const response = await self.ChromeAIHelper.callPromptAPI(session, prompt);
+            // Clone the appropriate main session for this isolated task
+            // This keeps context small - only initial prompts + this one prompt
+            clonedSession = await this.cloneSession(sessionType);
+            const response = await self.ChromeAIHelper.callPromptAPI(clonedSession, prompt);
+
+            // Destroy the cloned session after use to free resources
+            await self.ChromeAIHelper.destroySession(clonedSession);
 
             return response;
 
         } catch (error) {
             console.error('Chrome AI error:', error);
 
-            // For other errors, try recreating the session once
+            // Clean up cloned session on error
+            if (clonedSession) {
+                try {
+                    await self.ChromeAIHelper.destroySession(clonedSession);
+                } catch (cleanupError) {
+                    console.error('Error cleaning up cloned session:', cleanupError);
+                }
+            }
+
+            // For other errors, try recreating the main session once
             if (retryCount < MAX_RETRIES) {
-                console.log(`PaperMind: Retrying with fresh session (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
-                await this.recreateSession();
-                return await this.callPromptAPI(prompt, retryCount + 1);
+                console.log(`PaperMind: Retrying with fresh ${sessionType} session (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+                await this.recreateMainSession(sessionType);
+                return await this.callPromptAPI(prompt, sessionType, retryCount + 1);
             }
 
             // After retries exhausted, use fallback
@@ -497,7 +573,8 @@ class PaperMindAI {
 
         try {
             const questionPrompt = self.Prompts.askQuestion(question, paperData);
-            const answer = await this.callPromptAPI(questionPrompt);
+            // Use the question session for Q&A tasks
+            const answer = await this.callPromptAPI(questionPrompt, 'question');
 
             this.cache.set(cacheKey, answer);
             return answer;
@@ -511,7 +588,8 @@ class PaperMindAI {
     async processText(prompt, text) {
         try {
             const fullPrompt = self.Prompts.processText(prompt, text);
-            const result = await this.callPromptAPI(fullPrompt);
+            // Use the question session for text processing (explain, simplify, etc.)
+            const result = await this.callPromptAPI(fullPrompt, 'question');
             return result;
         } catch (error) {
             console.error('Error processing text:', error);
@@ -522,7 +600,8 @@ class PaperMindAI {
     async generateDiagram(concept, paperData) {
         try {
             const diagramPrompt = self.Prompts.generateDiagram(concept, paperData);
-            const diagram = await this.callPromptAPI(diagramPrompt);
+            // Use the question session for diagram generation (explanatory task)
+            const diagram = await this.callPromptAPI(diagramPrompt, 'question');
             return diagram;
         } catch (error) {
             console.error('Error generating diagram:', error);
@@ -623,12 +702,12 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     // Listen for extension being suspended
     chrome.runtime.onSuspend?.addListener(() => {
         console.log('PaperMind: Service worker suspending, cleaning up...');
-        paperMindAI.destroyGlobalSession();
+        paperMindAI.destroyMainSession();
     });
 }
 
 // Also cleanup on unload (for testing in dev mode)
 self.addEventListener('beforeunload', () => {
     console.log('PaperMind: Service worker unloading, cleaning up...');
-    paperMindAI.destroyGlobalSession();
+    paperMindAI.destroyMainSession();
 });
