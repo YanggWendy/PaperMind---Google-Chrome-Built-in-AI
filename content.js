@@ -130,22 +130,63 @@ class PaperMind {
         container.appendChild(panel);
         document.body.appendChild(container);
 
-        // Make container draggable
-        this.makeDraggable(container);
+        // Track if panel is pinned (fixed open)
+        let isPinned = false;
+        let isClickingButton = false;
 
-        // Show panel on hover over container
-        container.addEventListener('mouseenter', () => {
-            panel.classList.remove('hidden');
-            button.classList.add('hidden');
+        // Store references for event handlers
+        this.floatingButton = button;
+        this.expandablePanel = panel;
+        this.floatingContainer = container;
+
+        // Detect when user is about to click the button
+        button.addEventListener('mousedown', (e) => {
+            isClickingButton = true;
+            e.stopPropagation();
         });
 
-        // Hide panel when mouse leaves container
-        container.addEventListener('mouseleave', () => {
-            // Don't hide if currently analyzing
-            if (!this.isAnalyzing) {
-                panel.classList.add('hidden');
-                button.classList.remove('hidden');
+        // Click button to pin panel open
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            isPinned = true;
+            panel.classList.remove('hidden');
+            button.classList.add('hidden');
+            isClickingButton = false;
+        });
+
+        // Make container draggable (only by panel header, not button)
+        this.makeDraggable(container, panel);
+
+        // Show panel on hover over container (only if not pinned and not clicking)
+        let hoverTimeout;
+        container.addEventListener('mouseenter', (e) => {
+            clearTimeout(hoverTimeout);
+            
+            if (isClickingButton) {
+                return;
             }
+            
+            if (!isPinned) {
+                hoverTimeout = setTimeout(() => {
+                    if (!isPinned && !isClickingButton) {
+                        panel.classList.remove('hidden');
+                        button.classList.add('hidden');
+                    }
+                }, 200);
+            }
+        });
+
+        // Hide panel when mouse leaves container (only if not pinned and not analyzing)
+        container.addEventListener('mouseleave', (e) => {
+            clearTimeout(hoverTimeout);
+            
+            hoverTimeout = setTimeout(() => {
+                if (!isPinned && !this.isAnalyzing) {
+                    panel.classList.add('hidden');
+                    button.classList.remove('hidden');
+                }
+            }, 50);
         });
 
         // Analyze button click
@@ -154,9 +195,10 @@ class PaperMind {
             this.analyzePaper();
         });
 
-        // Close button
+        // Close button - unpins and closes panel
         const closeButton = panel.querySelector('.panel-close');
         closeButton.addEventListener('click', () => {
+            isPinned = false;
             panel.classList.add('hidden');
             button.classList.remove('hidden');
         });
@@ -173,16 +215,11 @@ class PaperMind {
             this.toggleEnhancedView();
         });
 
-        // Store references
-        this.floatingButton = button;
-        this.expandablePanel = panel;
-        this.floatingContainer = container;
-
         // Load and display existing notes
         this.loadStudyNotes();
     }
 
-    makeDraggable(element) {
+    makeDraggable(element, panel) {
         let isDragging = false;
         let currentX;
         let currentY;
@@ -191,13 +228,13 @@ class PaperMind {
         let xOffset = 0;
         let yOffset = 0;
 
-        // Get the button/panel header as the drag handle
-        const dragHandles = element.querySelectorAll('.papermind-button-compact, .panel-header');
-
-        dragHandles.forEach(handle => {
-            handle.addEventListener('mousedown', dragStart);
-            handle.style.cursor = 'move';
-        });
+        // Only use panel header as drag handle (NOT the button)
+        const panelHeader = panel.querySelector('.panel-header');
+        
+        if (panelHeader) {
+            panelHeader.addEventListener('mousedown', dragStart);
+            panelHeader.style.cursor = 'move';
+        }
 
         document.addEventListener('mousemove', drag);
         document.addEventListener('mouseup', dragEnd);
@@ -205,15 +242,16 @@ class PaperMind {
         function dragStart(e) {
             // Only drag on left mouse button
             if (e.button !== 0) return;
+            
+            // Don't drag if clicking on close button or toggle switch
+            if (e.target.closest('.panel-close') || e.target.closest('.view-toggle-switch')) {
+                return;
+            }
 
             initialX = e.clientX - xOffset;
             initialY = e.clientY - yOffset;
-
-            if (e.target === dragHandles[0] || e.target === dragHandles[1] ||
-                dragHandles[0].contains(e.target) || dragHandles[1].contains(e.target)) {
-                isDragging = true;
-                element.style.transition = 'none';
-            }
+            isDragging = true;
+            element.style.transition = 'none';
         }
 
         function drag(e) {
@@ -988,44 +1026,204 @@ Provide a focused answer to the follow-up question, building on the previous exp
             }
 
             notesList.innerHTML = currentPaperNotes.map((note, index) => {
-                const keyPointsHTML = note.keyPoints && note.keyPoints.length > 0
-                    ? `<div class="note-key-points">
-                        <strong>Key Points:</strong>
-                        <ul>
-                            ${note.keyPoints.map(point => `<li>${point}</li>`).join('')}
-                        </ul>
-                    </div>`
-                    : `<div class="note-explanation">
-                        ${(note.explanation || '').substring(0, 150)}${(note.explanation || '').length > 150 ? '...' : ''}
-                    </div>`;
+                const hasKeyPoints = note.keyPoints && note.keyPoints.length > 0;
+                const isLongText = (note.selectedText || '').length > 60;
+                const isLongExplanation = (note.explanation || '').length > 150;
+                const needsExpand = isLongText || isLongExplanation || hasKeyPoints;
 
                 return `
-                    <div class="note-item" data-index="${index}">
+                    <div class="note-item ${needsExpand ? 'expandable' : ''}" data-index="${index}">
                         <div class="note-header">
                             <span class="note-badge">${note.prompt}</span>
-                            <button class="note-delete" data-index="${index}">×</button>
+                            <div class="note-actions">
+                                <button class="note-edit" data-index="${index}" title="Edit">✎</button>
+                                <button class="note-delete" data-index="${index}" title="Delete">×</button>
+                            </div>
                         </div>
-                        <div class="note-text">
-                            <strong>Selected:</strong> "${note.selectedText.substring(0, 60)}..."
+                        
+                        <!-- Preview Mode (Collapsed) -->
+                        <div class="note-preview">
+                            <div class="note-text">
+                                <strong>Selected:</strong> "${note.selectedText.substring(0, 60)}${isLongText ? '...' : ''}"
+                            </div>
+                            ${hasKeyPoints 
+                                ? `<div class="note-key-points-preview">
+                                    <strong>Key Points:</strong> ${note.keyPoints.length} points
+                                   </div>`
+                                : `<div class="note-explanation">
+                                    ${(note.explanation || '').substring(0, 150)}${isLongExplanation ? '...' : ''}
+                                   </div>`
+                            }
                         </div>
-                        ${keyPointsHTML}
+                        
+                        <!-- Full Content (Expanded) -->
+                        <div class="note-full-content hidden">
+                            <div class="note-text-full">
+                                <strong>Selected Text:</strong>
+                                <div class="note-selected-text">${note.selectedText}</div>
+                            </div>
+                            
+                            ${note.explanation ? `
+                                <div class="note-explanation-full">
+                                    <strong>Explanation:</strong>
+                                    <div class="note-explanation-text">${note.explanation}</div>
+                                </div>
+                            ` : ''}
+                            
+                            ${hasKeyPoints ? `
+                                <div class="note-key-points-full">
+                                    <strong>Key Points:</strong>
+                                    <ul>
+                                        ${note.keyPoints.map(point => `<li>${point}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Edit Mode -->
+                        <div class="note-edit-mode hidden">
+                            <div class="note-edit-field">
+                                <label>Selected Text:</label>
+                                <textarea class="note-edit-selected" rows="3">${note.selectedText}</textarea>
+                            </div>
+                            
+                            <div class="note-edit-field">
+                                <label>Explanation:</label>
+                                <textarea class="note-edit-explanation" rows="6">${note.explanation || ''}</textarea>
+                            </div>
+                            
+                            <div class="note-edit-field">
+                                <label>Key Points (one per line):</label>
+                                <textarea class="note-edit-keypoints" rows="4">${hasKeyPoints ? note.keyPoints.join('\n') : ''}</textarea>
+                            </div>
+                            
+                            <div class="note-edit-actions">
+                                <button class="note-save" data-index="${index}">Save</button>
+                                <button class="note-cancel" data-index="${index}">Cancel</button>
+                            </div>
+                        </div>
+                        
                         <div class="note-footer">
                             <small>${new Date(note.timestamp).toLocaleString()}</small>
+                            ${needsExpand ? '<button class="note-expand-toggle">Show more</button>' : ''}
                         </div>
                     </div>
                 `;
             }).join('');
 
-            // Add delete handlers
-            notesList.querySelectorAll('.note-delete').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const index = parseInt(e.target.dataset.index);
-                    this.deleteStudyNote(index);
-                });
-            });
+            // Add event handlers
+            this.attachNoteEventHandlers(notesList, currentPaperNotes);
 
         } catch (error) {
             console.error('Error loading study notes:', error);
+        }
+    }
+
+    attachNoteEventHandlers(notesList, currentPaperNotes) {
+        // Expand/Collapse toggle
+        notesList.querySelectorAll('.note-expand-toggle').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const noteItem = e.target.closest('.note-item');
+                const preview = noteItem.querySelector('.note-preview');
+                const fullContent = noteItem.querySelector('.note-full-content');
+                const isExpanded = !fullContent.classList.contains('hidden');
+                
+                if (isExpanded) {
+                    fullContent.classList.add('hidden');
+                    preview.classList.remove('hidden');
+                    btn.textContent = 'Show more';
+                } else {
+                    fullContent.classList.remove('hidden');
+                    preview.classList.add('hidden');
+                    btn.textContent = 'Show less';
+                }
+            });
+        });
+
+        // Edit button
+        notesList.querySelectorAll('.note-edit').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const noteItem = e.target.closest('.note-item');
+                const preview = noteItem.querySelector('.note-preview');
+                const fullContent = noteItem.querySelector('.note-full-content');
+                const editMode = noteItem.querySelector('.note-edit-mode');
+                
+                preview.classList.add('hidden');
+                fullContent.classList.add('hidden');
+                editMode.classList.remove('hidden');
+            });
+        });
+
+        // Save button
+        notesList.querySelectorAll('.note-save').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                const noteItem = e.target.closest('.note-item');
+                
+                const selectedText = noteItem.querySelector('.note-edit-selected').value;
+                const explanation = noteItem.querySelector('.note-edit-explanation').value;
+                const keyPointsText = noteItem.querySelector('.note-edit-keypoints').value;
+                const keyPoints = keyPointsText.split('\n').filter(p => p.trim()).map(p => p.trim());
+                
+                this.updateStudyNote(index, {
+                    selectedText,
+                    explanation,
+                    keyPoints
+                });
+            });
+        });
+
+        // Cancel button
+        notesList.querySelectorAll('.note-cancel').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const noteItem = e.target.closest('.note-item');
+                const preview = noteItem.querySelector('.note-preview');
+                const editMode = noteItem.querySelector('.note-edit-mode');
+                
+                editMode.classList.add('hidden');
+                preview.classList.remove('hidden');
+            });
+        });
+
+        // Delete button
+        notesList.querySelectorAll('.note-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(e.target.dataset.index);
+                this.deleteStudyNote(index);
+            });
+        });
+    }
+
+    async updateStudyNote(index, updates) {
+        try {
+            const result = await chrome.storage.local.get(['studyNotes']);
+            const studyNotes = result.studyNotes || [];
+            
+            // Find notes for current paper
+            const currentPaperNotes = studyNotes.filter(note =>
+                note.paperUrl === window.location.href
+            );
+            
+            if (index < currentPaperNotes.length) {
+                const noteToUpdate = currentPaperNotes[index];
+                const globalIndex = studyNotes.indexOf(noteToUpdate);
+                
+                // Update the note
+                studyNotes[globalIndex] = {
+                    ...studyNotes[globalIndex],
+                    ...updates,
+                    timestamp: studyNotes[globalIndex].timestamp // Keep original timestamp
+                };
+                
+                await chrome.storage.local.set({ studyNotes });
+                this.loadStudyNotes();
+                this.showNotification('Note updated successfully', 'success');
+            }
+        } catch (error) {
+            console.error('Error updating note:', error);
+            this.showNotification('Failed to update note', 'error');
         }
     }
 
