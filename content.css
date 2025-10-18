@@ -11,7 +11,7 @@
 
 /* Compact Button */
 .papermind-button-compact {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     padding: 12px 16px;
     border-radius: 25px;
@@ -36,7 +36,9 @@
 }
 
 .papermind-icon {
-    font-size: 18px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 /* Expandable Panel */
@@ -66,7 +68,7 @@
 }
 
 .papermind-expandable-panel .panel-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     padding: 14px 16px;
     display: flex;
@@ -85,7 +87,9 @@
 }
 
 .papermind-expandable-panel .panel-icon {
-    font-size: 18px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 .papermind-expandable-panel .panel-header-controls {
@@ -194,7 +198,7 @@ input:checked+.toggle-slider:hover {
 /* Action Button */
 .action-button {
     width: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     border: none;
     padding: 12px 16px;
@@ -211,7 +215,7 @@ input:checked+.toggle-slider:hover {
 
 .action-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
 }
 
 .action-button.hidden {
@@ -219,7 +223,8 @@ input:checked+.toggle-slider:hover {
 }
 
 .button-icon {
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 /* Progress Section in Panel */
@@ -260,7 +265,7 @@ input:checked+.toggle-slider:hover {
 
 .progress-section .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(90deg, #4FC3F7 0%, #29B6F6 100%);
     border-radius: 10px;
     transition: width 0.3s ease;
     width: 0%;
@@ -291,6 +296,12 @@ input:checked+.toggle-slider:hover {
     gap: 4px;
 }
 
+.progress-section .progress-ai-info .ai-label {
+    color: #4FC3F7;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
 .papermind-panel {
     position: fixed;
     top: 0;
@@ -306,7 +317,7 @@ input:checked+.toggle-slider:hover {
 }
 
 .panel-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     padding: 16px 20px;
     display: flex;
@@ -354,7 +365,7 @@ input:checked+.toggle-slider:hover {
     margin-bottom: 16px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #4FC3F7;
 }
 
 .summary-section h4 {
@@ -411,12 +422,12 @@ input:checked+.toggle-slider:hover {
 
 .question-input input:focus,
 .diagram-input input:focus {
-    border-color: #667eea;
+    border-color: #4FC3F7;
 }
 
 .question-input button,
 .diagram-input button {
-    background: #667eea;
+    background: #4FC3F7;
     color: white;
     border: none;
     padding: 8px 16px;
@@ -443,7 +454,7 @@ input:checked+.toggle-slider:hover {
     padding: 12px;
     margin-top: 12px;
     border-radius: 6px;
-    border-left: 3px solid #667eea;
+    border-left: 3px solid #4FC3F7;
 }
 
 .question {
@@ -523,7 +534,10 @@ input:checked+.toggle-slider:hover {
 }
 
 .search-icon {
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    pointer-events: none; /* Let clicks pass through to button */
 }
 
 .search-input {
@@ -598,7 +612,7 @@ input:checked+.toggle-slider:hover {
 }
 
 .knowledge-panel-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     padding: 16px 20px;
     border-radius: 16px 16px 0 0;
@@ -678,7 +692,7 @@ input:checked+.toggle-slider:hover {
     border-radius: 8px;
     font-size: 13px;
     color: #495057;
-    border-left: 3px solid #667eea;
+    border-left: 3px solid #4FC3F7;
 }
 
 .selected-text-preview strong {
@@ -735,7 +749,7 @@ input:checked+.toggle-slider:hover {
     font-size: 13px;
     line-height: 1.5;
     color: #333;
-    border-left: 3px solid #667eea;
+    border-left: 3px solid #4FC3F7;
     outline: none;
 }
 
@@ -821,7 +835,7 @@ input:checked+.toggle-slider:hover {
 
 .followup-input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #4FC3F7;
 }
 
 .followup-buttons {
@@ -851,7 +865,7 @@ input:checked+.toggle-slider:hover {
 }
 
 .btn-submit-followup {
-    background: #667eea;
+    background: #4FC3F7;
     color: white;
 }
 
@@ -870,6 +884,8 @@ input:checked+.toggle-slider:hover {
 
 .error-icon {
     font-size: 48px;
+    font-weight: 700;
+    color: #dc3545;
 }
 
 .error-state p {
@@ -916,7 +932,7 @@ input:checked+.toggle-slider:hover {
 }
 
 .close-response {
-    background: #667eea;
+    background: #4FC3F7;
     color: white;
     border: none;
     padding: 8px 16px;
@@ -1008,7 +1024,7 @@ input:checked+.toggle-slider:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     border-radius: 12px 12px 0 0;
 }
@@ -1097,7 +1113,7 @@ input:checked+.toggle-slider:hover {
 }
 
 .btn.primary {
-    background: #667eea;
+    background: #4FC3F7;
     color: white;
 }
 
@@ -1138,7 +1154,7 @@ input:checked+.toggle-slider:hover {
 }
 
 .papermind-progress-panel .progress-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     padding: 12px 16px;
     display: flex;
@@ -1156,7 +1172,9 @@ input:checked+.toggle-slider:hover {
 }
 
 .papermind-progress-panel .progress-icon {
-    font-size: 18px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 .papermind-progress-panel .progress-minimize {
@@ -1240,6 +1258,12 @@ input:checked+.toggle-slider:hover {
     gap: 4px;
 }
 
+.papermind-progress-panel .progress-ai-info .ai-label {
+    color: #4FC3F7;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
 /* Animation for progress panel */
 @keyframes slideInFromRight {
     from {
@@ -1307,7 +1331,15 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .notification-icon {
-    font-size: 20px;
+    font-size: 16px;
+    font-weight: 700;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.1);
     flex-shrink: 0;
 }
 
@@ -1455,7 +1487,7 @@ body.papermind-enhanced-mode .papermind-original {
     }
 
     .diagram-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     }
 
     .diagram-description h5,
@@ -1498,6 +1530,11 @@ body.papermind-enhanced-mode .papermind-original {
     .papermind-progress-panel .progress-ai-info {
         border-top-color: #444;
         color: #ccc;
+    }
+
+    .papermind-progress-panel .progress-ai-info .ai-label,
+    .progress-section .progress-ai-info .ai-label {
+        color: #5AB9EA;
     }
 
     /* Dark mode for notifications */
@@ -1544,7 +1581,7 @@ body.papermind-enhanced-mode .papermind-original {
 
 .papermind-badge {
     display: inline-block;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     padding: 6px 16px;
     border-radius: 20px;
@@ -1576,7 +1613,7 @@ body.papermind-enhanced-mode .papermind-original {
 .paper-chunk header {
     margin-bottom: 20px;
     padding-bottom: 12px;
-    border-bottom: 2px solid #667eea;
+    border-bottom: 2px solid #4FC3F7;
 }
 
 .paper-chunk header h3 {
@@ -1589,7 +1626,7 @@ body.papermind-enhanced-mode .papermind-original {
 /* Essentials Section */
 .paper-chunk .essentials {
     background: #f8f9fa;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #4FC3F7;
     padding: 16px 20px;
     margin-bottom: 20px;
     border-radius: 4px;
@@ -1614,7 +1651,7 @@ body.papermind-enhanced-mode .papermind-original {
     content: "▸";
     position: absolute;
     left: -12px;
-    color: #667eea;
+    color: #4FC3F7;
     font-weight: bold;
 }
 
@@ -1641,14 +1678,14 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .paper-chunk .essentials a {
-    color: #667eea;
+    color: #4FC3F7;
     text-decoration: none;
     border-bottom: 1px solid transparent;
     transition: border-color 0.2s;
 }
 
 .paper-chunk .essentials a:hover {
-    border-bottom-color: #667eea;
+    border-bottom-color: #4FC3F7;
 }
 
 /* Equations Section */
@@ -1686,7 +1723,7 @@ body.papermind-enhanced-mode .papermind-original {
     padding: 12px 16px;
     cursor: pointer;
     font-weight: 600;
-    color: #667eea;
+    color: #4FC3F7;
     user-select: none;
     transition: background-color 0.2s;
 }
@@ -1731,14 +1768,14 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .paper-chunk .more a {
-    color: #667eea;
+    color: #4FC3F7;
     text-decoration: none;
     border-bottom: 1px solid transparent;
     transition: border-color 0.2s;
 }
 
 .paper-chunk .more a:hover {
-    border-bottom-color: #667eea;
+    border-bottom-color: #4FC3F7;
 }
 
 /* Provenance/Footer Section */
@@ -1750,7 +1787,7 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .paper-chunk footer.provenance a {
-    color: #667eea;
+    color: #4FC3F7;
     text-decoration: none;
     font-size: 13px;
     font-weight: 500;
@@ -1843,7 +1880,7 @@ body.papermind-enhanced-mode .papermind-original {
 /* Figure tags/labels */
 .section-images .ltx_tag_figure {
     font-weight: 600;
-    color: #667eea;
+    color: #4FC3F7;
     margin-right: 4px;
 }
 
@@ -1853,7 +1890,7 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .section-images .ltx_cite a {
-    color: #667eea;
+    color: #4FC3F7;
     text-decoration: none;
 }
 
@@ -1950,7 +1987,7 @@ body.papermind-enhanced-mode .papermind-original {
     }
 
     .paper-chunk header {
-        border-bottom-color: #667eea;
+        border-bottom-color: #4FC3F7;
     }
 
     .paper-chunk header h3 {
@@ -1980,7 +2017,7 @@ body.papermind-enhanced-mode .papermind-original {
 
     .paper-chunk .more summary {
         background: #1f1f1f;
-        color: #667eea;
+        color: #4FC3F7;
     }
 
     .paper-chunk .more summary:hover {
@@ -2029,11 +2066,11 @@ body.papermind-enhanced-mode .papermind-original {
     }
 
     .section-images .ltx_tag_figure {
-        color: #667eea;
+        color: #4FC3F7;
     }
 
     .section-images .ltx_cite a {
-        color: #667eea;
+        color: #4FC3F7;
     }
 
     .section-images table th,
@@ -2079,7 +2116,7 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .prompt-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     padding: 20px;
     display: flex;
@@ -2155,13 +2192,14 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .prompt-option-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    border-color: #4FC3F7;
     color: white;
 }
 
 .option-icon {
-    font-size: 24px;
+    font-size: 20px;
+    font-weight: 600;
 }
 
 .option-text {
@@ -2200,7 +2238,7 @@ body.papermind-enhanced-mode .papermind-original {
 
 .custom-prompt-input textarea:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #4FC3F7;
 }
 
 .custom-prompt-input small {
@@ -2239,13 +2277,13 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
 }
 
 /* ===============================================
@@ -2290,7 +2328,7 @@ body.papermind-enhanced-mode .papermind-original {
     width: 32px;
     height: 32px;
     border: 3px solid #f3f3f3;
-    border-top: 3px solid #667eea;
+    border-top: 3px solid #4FC3F7;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -2306,7 +2344,7 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .explanation-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     padding: 12px 16px;
     display: flex;
     justify-content: space-between;
@@ -2380,12 +2418,12 @@ body.papermind-enhanced-mode .papermind-original {
 
 .explanation-follow-up {
     background: white;
-    color: #667eea;
-    border: 2px solid #667eea;
+    color: #4FC3F7;
+    border: 2px solid #4FC3F7;
 }
 
 .explanation-follow-up:hover {
-    background: #667eea;
+    background: #4FC3F7;
     color: white;
 }
 
@@ -2423,7 +2461,7 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .followup-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     padding: 20px;
     display: flex;
@@ -2473,7 +2511,7 @@ body.papermind-enhanced-mode .papermind-original {
 
 .followup-body textarea:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #4FC3F7;
 }
 
 .followup-footer {
@@ -2511,7 +2549,7 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .notes-download-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     border: none;
     color: white;
     padding: 6px 12px;
@@ -2523,7 +2561,7 @@ body.papermind-enhanced-mode .papermind-original {
 
 .notes-download-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
 }
 
 .notes-list {
@@ -2561,7 +2599,7 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .note-badge {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     padding: 3px 8px;
     border-radius: 10px;
@@ -2645,7 +2683,7 @@ body.papermind-enhanced-mode .papermind-original {
 }
 
 .notes-list::-webkit-scrollbar-thumb {
-    background: #667eea;
+    background: #4FC3F7;
     border-radius: 10px;
 }
 
@@ -2752,7 +2790,7 @@ body.papermind-enhanced-mode .papermind-original {
     /* Dark mode for search bar */
     .search-bar-content {
         background: #2d2d2d;
-        border-color: #667eea;
+        border-color: #4FC3F7;
     }
 
     .search-input {

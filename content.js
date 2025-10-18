@@ -66,7 +66,6 @@ class PaperMind {
         button.id = 'papermind-button';
         button.className = 'papermind-button-compact';
         button.innerHTML = `
-            <div class="papermind-icon">🧠</div>
             <div class="papermind-text">PaperMind</div>
         `;
 
@@ -77,7 +76,6 @@ class PaperMind {
         panel.innerHTML = `
             <div class="panel-header">
                 <div class="panel-title">
-                    <span class="panel-icon">🧠</span>
                     <span class="panel-title-text">PaperMind</span>
                 </div>
                 <div class="panel-header-controls">
@@ -93,7 +91,7 @@ class PaperMind {
             </div>
             <div class="panel-content">
                 <button class="action-button analyze-button" id="analyze-button">
-                    <span class="button-icon">✨</span>
+                    <span class="button-icon">▶</span>
                     <span>Analyze Paper</span>
                 </button>
                 <div class="progress-section hidden" id="progress-section">
@@ -110,15 +108,15 @@ class PaperMind {
                         <span id="progress-section-count">0 / 0</span>
                     </div>
                     <div class="progress-ai-info">
-                        <span>✨ Gemini Nano</span>
-                        <span>🔒 Private</span>
+                        <span><span class="ai-label">AI:</span> Gemini Nano</span>
+                        <span>Private</span>
                     </div>
                 </div>
                 <div class="study-notes-section">
                     <div class="notes-header">
-                        <h4>📚 Study Notes</h4>
+                        <h4>Study Notes</h4>
                         <button class="notes-download-btn" id="notes-download-btn" title="Download Notes">
-                            <span>⬇️</span>
+                            <span>↓</span>
                         </button>
                     </div>
                     <div class="notes-list" id="notes-list">
@@ -518,6 +516,13 @@ class PaperMind {
     setupEventListeners() {
         // Listen for text selection
         document.addEventListener('mouseup', (e) => {
+            // Don't trigger on clicks inside PaperMind UI elements
+            if (e.target.closest('.papermind-search-bar') || 
+                e.target.closest('.papermind-knowledge-panel') ||
+                e.target.closest('.papermind-container')) {
+                return;
+            }
+            
             const selection = window.getSelection();
             if (selection.toString().trim()) {
                 this.highlightedText = selection.toString().trim();
@@ -549,8 +554,10 @@ class PaperMind {
             existing.remove();
         }
 
-        // Store selection position
-        this.selectionRect = window.getSelection().getRangeAt(0).getBoundingClientRect();
+        // Store selection position AND range
+        const selection = window.getSelection();
+        this.selectionRect = selection.getRangeAt(0).getBoundingClientRect();
+        this.selectionRange = selection.getRangeAt(0).cloneRange(); // Clone the range to preserve it
 
         // Create compact search bar near selection
         const searchBar = document.createElement('div');
@@ -558,7 +565,7 @@ class PaperMind {
         searchBar.innerHTML = `
             <div class="search-bar-content">
                 <button class="search-icon-btn" id="quick-search-btn" title="Quick explanation">
-                    <span class="search-icon">🔍</span>
+                    <span class="search-icon">?</span>
                 </button>
                 <input type="text" 
                        class="search-input" 
@@ -604,14 +611,35 @@ class PaperMind {
             if (e.key === 'Enter') handleSubmit();
         });
 
-        // Auto-focus input
-        setTimeout(() => input.focus(), 50);
+        // Auto-focus input and restore selection
+        setTimeout(() => {
+            input.focus();
+            // Restore the selection to keep the highlight visible
+            if (this.selectionRange) {
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(this.selectionRange);
+            }
+        }, 50);
+
+        // Prevent input from clearing selection when typing
+        input.addEventListener('focus', () => {
+            if (this.selectionRange) {
+                setTimeout(() => {
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(this.selectionRange);
+                }, 10);
+            }
+        });
 
         // Remove on click outside
         setTimeout(() => {
             document.addEventListener('click', (e) => {
                 if (!searchBar.contains(e.target)) {
                     searchBar.remove();
+                    // Clear the stored range when done
+                    this.selectionRange = null;
                 }
             }, { once: true });
         }, 100);
@@ -704,7 +732,7 @@ Format as structured sections with clear headings.`;
             panel.className = 'papermind-knowledge-panel';
             panel.innerHTML = `
                 <div class="knowledge-panel-header">
-                    <span class="panel-title">🔍 Knowledge Assistant</span>
+                    <span class="panel-title">Knowledge Assistant</span>
                     <button class="panel-minimize" title="Minimize">−</button>
                     <button class="panel-close" title="Close">×</button>
                 </div>
@@ -746,12 +774,12 @@ Format as structured sections with clear headings.`;
                     </div>
                     
                     <div class="full-explanation">
-                        <h4>📚 Explanation</h4>
+                        <h4>Explanation</h4>
                         <div class="explanation-text">${this.formatExplanation(fullExplanation)}</div>
                     </div>
                     
                     <div class="key-points-section">
-                        <h4>💡 Key Points to Remember</h4>
+                        <h4>Key Points</h4>
                         <div class="key-points-list" contenteditable="true" id="editable-key-points">
                             ${keyPoints.map(point => `<div class="key-point">• ${point}</div>`).join('')}
                         </div>
@@ -759,8 +787,8 @@ Format as structured sections with clear headings.`;
                     </div>
                     
                     <div class="panel-actions">
-                        <button class="btn-followup">💬 Ask Follow-up</button>
-                        <button class="btn-save-notes">💾 Save to Notes</button>
+                        <button class="btn-followup">Ask Follow-up</button>
+                        <button class="btn-save-notes">Save to Notes</button>
                     </div>
                 </div>
             `;
@@ -796,7 +824,7 @@ Format as structured sections with clear headings.`;
         } else if (state === 'error') {
             contentDiv.innerHTML = `
                 <div class="error-state">
-                    <span class="error-icon">⚠️</span>
+                    <span class="error-icon">!</span>
                     <p>Failed to generate explanation</p>
                     <small>${data.message || 'Please try again'}</small>
                 </div>
@@ -1120,7 +1148,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
         panel.className = 'papermind-panel';
         panel.innerHTML = `
       <div class="panel-header">
-        <h3>🧠 PaperMind AI Summary</h3>
+        <h3>PaperMind AI Summary</h3>
         <button class="close-btn">&times;</button>
       </div>
       <div class="panel-content">
@@ -1153,7 +1181,6 @@ Provide a focused answer to the follow-up question, building on the previous exp
         panel.innerHTML = `
             <div class="progress-header">
                 <div class="progress-title">
-                    <span class="progress-icon">🧠</span>
                     <span class="progress-title-text">Analyzing Paper</span>
                 </div>
                 <button class="progress-minimize" title="Minimize">−</button>
@@ -1172,8 +1199,8 @@ Provide a focused answer to the follow-up question, building on the previous exp
                     <span id="progress-section">0 / 0 sections</span>
                 </div>
                 <div class="progress-ai-info">
-                    <span>✨ Gemini Nano</span>
-                    <span>🔒 Private</span>
+                    <span><span class="ai-label">AI:</span> Gemini Nano</span>
+                    <span>Private</span>
                 </div>
             </div>
         `;
@@ -1433,29 +1460,29 @@ Provide a focused answer to the follow-up question, building on the previous exp
         const content = this.summaryPanel.querySelector('.panel-content');
         content.innerHTML = `
       <div class="summary-section">
-        <h4>📋 Overview</h4>
+        <h4>Overview</h4>
         <p>${summary.overview}</p>
       </div>
       <div class="summary-section">
-        <h4>🎯 Key Points</h4>
+        <h4>Key Points</h4>
         <ul>
           ${summary.keyPoints.map(point => `<li>${point}</li>`).join('')}
         </ul>
       </div>
       <div class="summary-section">
-        <h4>🔬 Methodology</h4>
+        <h4>Methodology</h4>
         <p>${summary.methodology}</p>
       </div>
       <div class="summary-section">
-        <h4>📊 Results</h4>
+        <h4>Results</h4>
         <p>${summary.results}</p>
       </div>
       <div class="summary-section">
-        <h4>💡 Implications</h4>
+        <h4>Implications</h4>
         <p>${summary.implications}</p>
       </div>
       <div class="interactive-section">
-        <h4>🤔 Ask Questions</h4>
+        <h4>Ask Questions</h4>
         <div class="question-input">
           <input type="text" placeholder="Ask a question about this paper..." id="question-input">
           <button id="ask-question">Ask</button>
@@ -1538,10 +1565,10 @@ Provide a focused answer to the follow-up question, building on the previous exp
         notification.className = `papermind-notification notification-${type}`;
 
         const icons = {
-            success: '✅',
-            error: '❌',
-            warning: '⚠️',
-            info: 'ℹ️'
+            success: '✓',
+            error: '✕',
+            warning: '!',
+            info: 'i'
         };
 
         notification.innerHTML = `

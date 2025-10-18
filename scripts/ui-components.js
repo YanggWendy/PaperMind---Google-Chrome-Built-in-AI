@@ -19,7 +19,6 @@ class UIComponents {
         button.id = 'papermind-button';
         button.className = 'papermind-button-compact';
         button.innerHTML = `
-            <div class="papermind-icon">🧠</div>
             <div class="papermind-text">PaperMind</div>
         `;
 
@@ -30,14 +29,13 @@ class UIComponents {
         panel.innerHTML = `
             <div class="panel-header">
                 <div class="panel-title">
-                    <span class="panel-icon">🧠</span>
                     <span class="panel-title-text">PaperMind</span>
                 </div>
                 <button class="panel-close" title="Close">×</button>
             </div>
             <div class="panel-content">
                 <button class="action-button analyze-button" id="analyze-button">
-                    <span class="button-icon">✨</span>
+                    <span class="button-icon">▶</span>
                     <span>Analyze Paper</span>
                 </button>
                 <div class="progress-section hidden" id="progress-section">
@@ -54,8 +52,8 @@ class UIComponents {
                         <span id="progress-section-count">0 / 0</span>
                     </div>
                     <div class="progress-ai-info">
-                        <span>✨ Gemini Nano</span>
-                        <span>🔒 Private</span>
+                        <span><span class="ai-label">AI:</span> Gemini Nano</span>
+                        <span>Private</span>
                     </div>
                 </div>
                 <div class="toggle-view-section hidden" id="toggle-view-section">
@@ -67,9 +65,9 @@ class UIComponents {
                 </div>
                 <div class="study-notes-section">
                     <div class="notes-header">
-                        <h4>📚 Study Notes</h4>
+                        <h4>Study Notes</h4>
                         <button class="notes-download-btn" id="notes-download-btn" title="Download Notes">
-                            <span>⬇️</span>
+                            <span>↓</span>
                         </button>
                     </div>
                     <div class="notes-list" id="notes-list">
@@ -196,8 +194,9 @@ class UIComponents {
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `papermind-notification ${type}`;
+        const icons = { success: '✓', error: '✕', info: 'i', warning: '!' };
         notification.innerHTML = `
-            <span class="notification-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+            <span class="notification-icon">${icons[type] || icons.info}</span>
             <span class="notification-message">${message}</span>
         `;
 

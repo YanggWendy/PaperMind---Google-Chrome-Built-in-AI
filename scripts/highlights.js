@@ -36,14 +36,17 @@ class PaperMindHighlights {
 
         const menu = document.createElement('div');
         menu.className = 'papermind-context-menu';
-        menu.innerHTML = `<div class="menu-item" data-action="explain">💡 Explain this</div>`;
+        menu.innerHTML = `<div class="menu-item" data-action="explain">Explain this</div>`;
         menu.style.position = 'absolute';
         menu.style.left = event.pageX + 'px';
         menu.style.top = event.pageY + 'px';
 
         document.body.appendChild(menu);
 
-        this.paperMind.selectionRect = window.getSelection().getRangeAt(0).getBoundingClientRect();
+        // Store both selection position and range to preserve highlight
+        const selection = window.getSelection();
+        this.paperMind.selectionRect = selection.getRangeAt(0).getBoundingClientRect();
+        this.paperMind.selectionRange = selection.getRangeAt(0).cloneRange();
 
         menu.querySelector('.menu-item').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -52,7 +55,13 @@ class PaperMindHighlights {
         });
 
         setTimeout(() => {
-            document.addEventListener('click', () => menu.remove(), { once: true });
+            document.addEventListener('click', () => {
+                menu.remove();
+                // Clear the stored range when menu closes
+                if (this.paperMind.selectionRange) {
+                    this.paperMind.selectionRange = null;
+                }
+            }, { once: true });
         }, 100);
     }
 
@@ -65,7 +74,7 @@ class PaperMindHighlights {
         dialog.innerHTML = `
             <div class="prompt-dialog">
                 <div class="prompt-header">
-                    <h4>💡 Explain Selected Text</h4>
+                    <h4>Explain Selected Text</h4>
                     <button class="prompt-close">×</button>
                 </div>
                 <div class="prompt-body">
@@ -74,11 +83,11 @@ class PaperMindHighlights {
                     </div>
                     <div class="prompt-options">
                         <button class="prompt-option-btn active" data-mode="default">
-                            <span class="option-icon">🎯</span>
+                            <span class="option-icon">▶</span>
                             <span class="option-text">Quick Explanation</span>
                         </button>
                         <button class="prompt-option-btn" data-mode="custom">
-                            <span class="option-icon">✏️</span>
+                            <span class="option-icon">✎</span>
                             <span class="option-text">Custom Prompt</span>
                         </button>
                     </div>
@@ -99,6 +108,7 @@ class PaperMindHighlights {
 
         const btns = dialog.querySelectorAll('.prompt-option-btn');
         const customInput = dialog.querySelector('.custom-prompt-input');
+        const textarea = dialog.querySelector('textarea');
         let mode = 'default';
 
         btns.forEach(btn => {
@@ -110,8 +120,21 @@ class PaperMindHighlights {
             });
         });
 
+        // Keep selection visible when focusing textarea
+        if (textarea) {
+            textarea.addEventListener('focus', () => {
+                if (this.paperMind.selectionRange) {
+                    setTimeout(() => {
+                        const selection = window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(this.paperMind.selectionRange);
+                    }, 10);
+                }
+            });
+        }
+
         dialog.querySelector('.prompt-generate').addEventListener('click', () => {
-            const customPrompt = dialog.querySelector('textarea').value.trim();
+            const customPrompt = textarea.value.trim();
             this.generateExplanation(mode, customPrompt);
             dialog.remove();
         });
@@ -190,8 +213,8 @@ class PaperMindHighlights {
                     </div>
                     <div class="explanation-text">${this.formatExplanation(content)}</div>
                     <div class="explanation-footer">
-                        <button class="explanation-follow-up">💬 Ask Follow-up</button>
-                        <button class="explanation-save-note">📝 Saved to Notes</button>
+                        <button class="explanation-follow-up">Ask Follow-up</button>
+                        <button class="explanation-save-note">Saved to Notes</button>
                     </div>
                 </div>
             `;
@@ -222,7 +245,7 @@ class PaperMindHighlights {
         dialog.innerHTML = `
             <div class="followup-content">
                 <div class="followup-header">
-                    <h4>💬 Ask Follow-up Question</h4>
+                    <h4>Ask Follow-up Question</h4>
                     <button class="followup-close">×</button>
                 </div>
                 <div class="followup-body">
@@ -238,6 +261,18 @@ class PaperMindHighlights {
         document.body.appendChild(dialog);
 
         const textarea = dialog.querySelector('textarea');
+        
+        // Keep selection visible when focusing textarea
+        textarea.addEventListener('focus', () => {
+            if (this.paperMind.selectionRange) {
+                setTimeout(() => {
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(this.paperMind.selectionRange);
+                }, 10);
+            }
+        });
+        
         textarea.focus();
 
         dialog.querySelector('.followup-ask').addEventListener('click', async () => {

@@ -17,7 +17,7 @@ class PaperMindUI {
         const button = document.createElement('div');
         button.id = 'papermind-button';
         button.className = 'papermind-button-compact';
-        button.innerHTML = `<div class="papermind-icon">🧠</div><div class="papermind-text">PaperMind</div>`;
+        button.innerHTML = `<div class="papermind-text">PaperMind</div>`;
 
         const panel = document.createElement('div');
         panel.id = 'papermind-expandable-panel';
@@ -25,14 +25,13 @@ class PaperMindUI {
         panel.innerHTML = `
             <div class="panel-header">
                 <div class="panel-title">
-                    <span class="panel-icon">🧠</span>
                     <span class="panel-title-text">PaperMind</span>
                 </div>
                 <button class="panel-close" title="Close">×</button>
             </div>
             <div class="panel-content">
                 <button class="action-button analyze-button" id="analyze-button">
-                    <span class="button-icon">✨</span>
+                    <span class="button-icon">▶</span>
                     <span>Analyze Paper</span>
                 </button>
                 <div class="progress-section hidden" id="progress-section">
@@ -47,21 +46,21 @@ class PaperMindUI {
                         <span id="progress-section-count">0 / 0</span>
                     </div>
                     <div class="progress-ai-info">
-                        <span>✨ Gemini Nano</span>
-                        <span>🔒 Private</span>
+                        <span><span class="ai-label">AI:</span> Gemini Nano</span>
+                        <span>Private</span>
                     </div>
                 </div>
                 <div class="toggle-view-section hidden" id="toggle-view-section">
                     <button class="toggle-view-button" id="toggle-view-button" title="Switch view">
-                        <span class="toggle-view-icon">🔄</span>
+                        <span class="toggle-view-icon">⇄</span>
                         <span class="toggle-view-text">Show Original</span>
                     </button>
-                    <span class="toggle-view-hint">Click to toggle view</span>
+                    <span class="toggle-view-hint">Toggle view</span>
                 </div>
                 <div class="study-notes-section">
                     <div class="notes-header">
-                        <h4>📚 Study Notes</h4>
-                        <button class="notes-download-btn" id="notes-download-btn" title="Download">⬇️</button>
+                        <h4>Study Notes</h4>
+                        <button class="notes-download-btn" id="notes-download-btn" title="Download Notes">↓</button>
                     </div>
                     <div class="notes-list" id="notes-list">
                         <p class="notes-empty">No notes yet. Highlight text to add notes.</p>
@@ -214,7 +213,7 @@ class PaperMindUI {
             });
             article.classList.remove('papermind-enhanced');
             article.classList.add('papermind-original');
-            if (icon) icon.textContent = '✨';
+            if (icon) icon.textContent = '→';
             if (text) text.textContent = 'Show Enhanced';
             if (btn) btn.title = 'Switch to enhanced view';
             this.showNotification('Switched to original view', 'info');
@@ -227,7 +226,7 @@ class PaperMindUI {
             });
             article.classList.remove('papermind-original');
             article.classList.add('papermind-enhanced');
-            if (icon) icon.textContent = '🔄';
+            if (icon) icon.textContent = '⇄';
             if (text) text.textContent = 'Show Original';
             if (btn) btn.title = 'Switch to original view';
             this.showNotification('Switched to enhanced view', 'success');
@@ -268,7 +267,7 @@ class PaperMindUI {
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `papermind-notification ${type}`;
-        const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+        const icons = { success: '✓', error: '✕', info: 'i', warning: '!' };
         notification.innerHTML = `
             <span class="notification-icon">${icons[type] || icons.info}</span>
             <span class="notification-message">${message}</span>
