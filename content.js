@@ -115,9 +115,10 @@ class PaperMind {
                 <div class="study-notes-section">
                     <div class="notes-header">
                         <h4>Study Notes</h4>
-                        <button class="notes-download-btn" id="notes-download-btn" title="Download Notes">
-                            <span>↓</span>
-                        </button>
+                        <div class="notes-actions">
+                            <button class="notes-add-btn" id="notes-add-btn" title="Add Note">+</button>
+                            <button class="notes-download-btn" id="notes-download-btn" title="Download Notes">↓</button>
+                        </div>
                     </div>
                     <div class="notes-list" id="notes-list">
                         <p class="notes-empty">No notes yet. Highlight text and explain it to save notes.</p>
@@ -201,6 +202,12 @@ class PaperMind {
             isPinned = false;
             panel.classList.add('hidden');
             button.classList.remove('hidden');
+        });
+
+        // Add note button
+        const addNoteBtn = panel.querySelector('#notes-add-btn');
+        addNoteBtn.addEventListener('click', () => {
+            this.showAddNoteDialog();
         });
 
         // Download notes button
@@ -1248,6 +1255,80 @@ Provide a focused answer to the follow-up question, building on the previous exp
         } catch (error) {
             console.error('Error deleting note:', error);
         }
+    }
+
+    showAddNoteDialog() {
+        // Create dialog overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'papermind-dialog-overlay';
+        
+        const dialog = document.createElement('div');
+        dialog.className = 'papermind-add-note-dialog';
+        dialog.innerHTML = `
+            <div class="dialog-header">
+                <h3>Add New Note</h3>
+                <button class="dialog-close">×</button>
+            </div>
+            <div class="dialog-body">
+                <div class="dialog-field">
+                    <label for="note-title">Title/Type</label>
+                    <input type="text" id="note-title" placeholder="e.g., Key Insight, Question, Summary..." />
+                </div>
+                <div class="dialog-field">
+                    <label for="note-reference">Reference Text (optional)</label>
+                    <textarea id="note-reference" rows="2" placeholder="Quote or reference from the paper..."></textarea>
+                </div>
+                <div class="dialog-field">
+                    <label for="note-content">Note Content</label>
+                    <textarea id="note-content" rows="6" placeholder="Write your notes here..."></textarea>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button class="dialog-btn dialog-cancel">Cancel</button>
+                <button class="dialog-btn dialog-save">Save Note</button>
+            </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // Focus on title input
+        setTimeout(() => dialog.querySelector('#note-title').focus(), 100);
+        
+        // Close handlers
+        const closeDialog = () => overlay.remove();
+        dialog.querySelector('.dialog-close').addEventListener('click', closeDialog);
+        dialog.querySelector('.dialog-cancel').addEventListener('click', closeDialog);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeDialog();
+        });
+        
+        // Save handler
+        dialog.querySelector('.dialog-save').addEventListener('click', async () => {
+            const title = dialog.querySelector('#note-title').value.trim();
+            const reference = dialog.querySelector('#note-reference').value.trim();
+            const content = dialog.querySelector('#note-content').value.trim();
+            
+            if (!title || !content) {
+                this.showNotification('Please fill in title and content', 'error');
+                return;
+            }
+            
+            const note = {
+                prompt: title,
+                selectedText: reference || 'Manual note',
+                explanation: content,
+                keyPoints: [],
+                paperUrl: window.location.href,
+                paperTitle: this.paperData?.title || document.title,
+                timestamp: Date.now(),
+                isManual: true
+            };
+            
+            await this.saveToStudyNotes(note);
+            closeDialog();
+            this.showNotification('Note added successfully!', 'success');
+        });
     }
 
     async downloadStudyNotes() {

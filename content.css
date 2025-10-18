@@ -2548,6 +2548,12 @@ body.papermind-enhanced-mode .papermind-original {
     color: #495057;
 }
 
+.notes-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.notes-add-btn,
 .notes-download-btn {
     background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     border: none;
@@ -2556,9 +2562,11 @@ body.papermind-enhanced-mode .papermind-original {
     border-radius: 8px;
     cursor: pointer;
     font-size: 16px;
+    font-weight: 600;
     transition: all 0.2s ease;
 }
 
+.notes-add-btn:hover,
 .notes-download-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
@@ -2820,6 +2828,163 @@ body.papermind-enhanced-mode .papermind-original {
     background: #dee2e6;
 }
 
+/* Add Note Dialog */
+.papermind-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.papermind-add-note-dialog {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.dialog-header {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+    padding: 20px 24px;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dialog-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.dialog-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.dialog-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.dialog-body {
+    padding: 24px;
+}
+
+.dialog-field {
+    margin-bottom: 20px;
+}
+
+.dialog-field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.dialog-field input,
+.dialog-field textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.dialog-field input:focus,
+.dialog-field textarea:focus {
+    outline: none;
+    border-color: #4FC3F7;
+    box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
+}
+
+.dialog-field textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.dialog-footer {
+    padding: 20px 24px;
+    background: #f8f9fa;
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.dialog-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dialog-cancel {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.dialog-cancel:hover {
+    background: #dee2e6;
+}
+
+.dialog-save {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+}
+
+.dialog-save:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
+}
+
 .note-key-points-preview {
     font-size: 12px;
     color: #6c757d;
@@ -3024,6 +3189,45 @@ body.papermind-enhanced-mode .papermind-original {
     }
 
     .note-cancel:hover {
+        background: #444;
+    }
+
+    /* Dialog dark mode */
+    .papermind-add-note-dialog {
+        background: #2d2d2d;
+    }
+
+    .dialog-body {
+        background: #2d2d2d;
+    }
+
+    .dialog-field label {
+        color: #e0e0e0;
+    }
+
+    .dialog-field input,
+    .dialog-field textarea {
+        background: #1f1f1f;
+        border-color: #444;
+        color: #e0e0e0;
+    }
+
+    .dialog-field input:focus,
+    .dialog-field textarea:focus {
+        border-color: #5AB9EA;
+        box-shadow: 0 0 0 3px rgba(90, 185, 234, 0.2);
+    }
+
+    .dialog-footer {
+        background: #1f1f1f;
+    }
+
+    .dialog-cancel {
+        background: #333;
+        color: #e0e0e0;
+    }
+
+    .dialog-cancel:hover {
         background: #444;
     }
 
