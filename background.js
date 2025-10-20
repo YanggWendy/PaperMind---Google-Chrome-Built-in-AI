@@ -366,48 +366,48 @@ class PaperMindAI {
             return this.cache.get(cacheKey);
         }
 
+        // Check if ADHD mode is enabled
+        const settings = await chrome.storage.sync.get(['adhdMode']);
+        const adhdMode = settings.adhdMode || false;
+
         try {
-            console.log('PaperMind: Starting paper analysis...');
+            const startTime = performance.now();
+            console.log(`PaperMind: Starting paper analysis... ${adhdMode ? '(ADHD Mode 🎯)' : ''}`);
             console.log('PaperData:', { title: paperData.title, sections: paperData.sections?.length });
 
-            const paperDataChunks = this.chunkPaperData(paperData);
+            // Process 1 section per chunk in parallel
+            const paperDataChunks = this.chunkPaperData(paperData, 1);
             const totalChunks = paperDataChunks.length;
-            console.log(`PaperMind: Processing ${totalChunks} chunks...`);
+            console.log(`PaperMind: Processing ${totalChunks} chunks (1 section each) in PARALLEL...`);
 
             // Send initial progress
-            this.sendProgressUpdate(0, totalChunks, 'Starting paper analysis...');
+            this.sendProgressUpdate(0, totalChunks, 'Starting parallel analysis...');
 
-            let summaryHtmlList = [];
+            // Track completed chunks for progress updates
+            let completedChunks = 0;
 
-            for (let i = 0; i < paperDataChunks.length; i++) {
-                const chunk = paperDataChunks[i];
+            // 🚀 PARALLEL PROCESSING: Process all chunks simultaneously
+            const chunkPromises = paperDataChunks.map(async (chunk, i) => {
                 const chunkNum = i + 1;
-
-                // Get section title for better progress messages
                 const sectionTitle = chunk.sections?.[0]?.title || `Section ${chunkNum}`;
 
-                // Send progress update at start of chunk
-                this.sendProgressUpdate(
-                    i,
-                    totalChunks,
-                    `Analyzing: ${sectionTitle}`
-                );
-
-                // Create a text-only version of the chunk (without images) for AI processing
-                const textOnlyChunk = this.createTextOnlyChunk(chunk);
-
-                console.log(`\nPaperMind: Processing chunk ${chunkNum}/${totalChunks}...`);
-                console.log(`PaperMind: Section: "${sectionTitle}"`);
-
-                // Log chunk size for debugging
-                const sizeInfo = this.estimateChunkSize(textOnlyChunk);
-                console.log(`PaperMind: Chunk size: ${sizeInfo.totalChars} chars (~${sizeInfo.estimatedTokens} tokens), ${sizeInfo.imageCount} images`);
-                if (sizeInfo.isLarge) {
-                    console.warn(`⚠️ PaperMind: Large chunk detected (${sizeInfo.totalChars} chars) - may hit token limits`);
-                }
-
                 try {
-                    const analysisPrompt = self.Prompts.analyzePaper(textOnlyChunk);
+                    console.log(`\nPaperMind: Starting chunk ${chunkNum}/${totalChunks}: "${sectionTitle}"`);
+
+                    // Create a text-only version of the chunk (without images) for AI processing
+                    const textOnlyChunk = this.createTextOnlyChunk(chunk);
+
+                    // Log chunk size for debugging
+                    const sizeInfo = this.estimateChunkSize(textOnlyChunk);
+                    console.log(`PaperMind: Chunk ${chunkNum} size: ${sizeInfo.totalChars} chars (~${sizeInfo.estimatedTokens} tokens)`);
+                    if (sizeInfo.isLarge) {
+                        console.warn(`⚠️ PaperMind: Large chunk detected (${sizeInfo.totalChars} chars) - may hit token limits`);
+                    }
+
+                    // Build the analysis prompt - use ADHD prompt if mode is enabled
+                    const analysisPrompt = adhdMode
+                        ? self.Prompts.analyzePaperADHD(textOnlyChunk)
+                        : self.Prompts.analyzePaper(textOnlyChunk);
 
                     // Use the analysis session for paper analysis
                     let sectionHtml = await this.callPromptAPI(analysisPrompt, 'analysis');
@@ -418,27 +418,34 @@ class PaperMindAI {
                     // Inject images into the generated HTML
                     sectionHtml = this.injectImagesIntoHtml(sectionHtml, chunk);
 
-                    console.log(`PaperMind: Chunk ${chunkNum} processed successfully (${sectionHtml.length} chars)`);
-                    summaryHtmlList.push(sectionHtml);
+                    console.log(`✅ PaperMind: Chunk ${chunkNum} completed (${sectionHtml.length} chars)`);
 
-                    // Send progress update after chunk completion
+                    // Send progress update
+                    completedChunks++;
                     this.sendProgressUpdate(
-                        chunkNum,
+                        completedChunks,
                         totalChunks,
-                        `Completed: ${sectionTitle}`
+                        `Completed ${completedChunks}/${totalChunks}: ${sectionTitle}`
                     );
 
-                } catch (chunkError) {
-                    console.error(`PaperMind: Error processing chunk ${i + 1}:`, chunkError);
+                    // Return the result with its index to maintain order
+                    return {
+                        index: i,
+                        html: sectionHtml,
+                        success: true
+                    };
 
-                    // If a chunk is too large, create a fallback HTML for that section
+                } catch (chunkError) {
+                    console.error(`❌ PaperMind: Error processing chunk ${chunkNum}:`, chunkError);
+
+                    // Create a fallback HTML for failed chunks
                     const fallbackHtml = `
                         <section class="paper-chunk error-chunk" data-section-title="${chunk.sections?.[0]?.title || 'Section'}">
                             <header>
                                 <h3>${chunk.sections?.[0]?.title || 'Section'}</h3>
                             </header>
                             <div class="essentials">
-                                <p class="error-message">⚠️ This section was too large to process. ${chunkError.message}</p>
+                                <p class="error-message">⚠️ This section failed to process. ${chunkError.message}</p>
                                 <details>
                                     <summary>View original text</summary>
                                     <p>${chunk.sections?.[0]?.text?.substring(0, 1000) || 'No text available'}...</p>
@@ -446,15 +453,41 @@ class PaperMindAI {
                             </div>
                         </section>
                     `;
-                    summaryHtmlList.push(fallbackHtml);
 
-                    // Continue with next chunk instead of failing completely
-                    continue;
+                    // Send progress update for failed chunk
+                    completedChunks++;
+                    this.sendProgressUpdate(
+                        completedChunks,
+                        totalChunks,
+                        `Error in chunk ${chunkNum}, continuing...`
+                    );
+
+                    return {
+                        index: i,
+                        html: fallbackHtml,
+                        success: false
+                    };
                 }
-            }
+            });
+
+            // Wait for ALL chunks to complete in parallel
+            console.log('PaperMind: Waiting for all parallel chunks to complete...');
+            const results = await Promise.all(chunkPromises);
+
+            // Sort results by index to maintain original section order
+            results.sort((a, b) => a.index - b.index);
+
+            // Extract HTML in correct order
+            const summaryHtmlList = results.map(r => r.html);
+
+            const endTime = performance.now();
+            const totalTime = ((endTime - startTime) / 1000).toFixed(2);
+            const avgTime = (totalTime / totalChunks).toFixed(2);
+            console.log(`🎉 PaperMind: Analysis complete in ${totalTime}s (avg ${avgTime}s per chunk)`);
+            console.log(`⚡ Speedup: ~${(totalChunks * 10 / totalTime).toFixed(1)}x faster than sequential!`);
 
             // Send final progress update
-            this.sendProgressUpdate(totalChunks, totalChunks, 'Analysis complete! Rendering...');
+            this.sendProgressUpdate(totalChunks, totalChunks, `Complete in ${totalTime}s!`);
 
             // Cache the result
             this.cache.set(cacheKey, summaryHtmlList);

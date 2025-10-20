@@ -12,7 +12,7 @@
     <div class="popup-container">
         <header class="popup-header">
             <div class="logo">
-                <span class="logo-icon">📘</span>
+                <img src="dist/Logo.png" alt="PaperMind Logo" class="logo-icon-img">
                 <h1>PaperMind</h1>
             </div>
             <div class="status-indicator" id="status-indicator">
@@ -85,17 +85,41 @@
                 </div>
                 <div class="setting-group">
                     <label class="setting-label">
-                        <input type="checkbox" id="show-diagrams" checked>
-                        <span class="checkmark"></span>
-                        Show diagrams for complex concepts
-                    </label>
-                </div>
-                <div class="setting-group">
-                    <label class="setting-label">
                         <input type="checkbox" id="highlight-mode">
                         <span class="checkmark"></span>
                         Enable highlight mode for questions
                     </label>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <input type="checkbox" id="adhd-mode">
+                        <span class="checkmark"></span>
+                        🎯 ADHD Mode (Focused Reading)
+                    </label>
+                </div>
+                <div class="adhd-subsettings" id="adhd-subsettings"
+                    style="display: none; margin-left: 30px; margin-top: 10px;">
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <input type="checkbox" id="show-time-estimates" checked>
+                            <span class="checkmark"></span>
+                            Show reading time estimates
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <input type="checkbox" id="completion-tracking" checked>
+                            <span class="checkmark"></span>
+                            Track section completion
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <input type="checkbox" id="progressive-reveal">
+                            <span class="checkmark"></span>
+                            Progressive reveal (one at a time)
+                        </label>
+                    </div>
                 </div>
                 <div class="setting-group">
                     <label for="ai-model-select">AI Model:</label>

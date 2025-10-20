@@ -86,6 +86,12 @@
     font-weight: 600;
 }
 
+.papermind-expandable-panel .panel-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
 .papermind-expandable-panel .panel-icon {
     font-size: 14px;
     font-weight: 700;
@@ -2667,18 +2673,9 @@ body.papermind-enhanced-mode .papermind-original {
 
 .note-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    margin-bottom: 8px;
-}
-
-.note-badge {
-    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
-    color: white;
-    padding: 3px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
+    margin-bottom: 4px;
 }
 
 .note-actions {
@@ -2762,26 +2759,9 @@ body.papermind-enhanced-mode .papermind-original {
     background: rgba(79, 195, 247, 0.1);
 }
 
-/* Preview and Full Content */
-.note-preview,
-.note-full-content {
-    margin-top: 8px;
-}
-
-.note-full-content {
-    animation: slideDown 0.2s ease;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        max-height: 0;
-    }
-
-    to {
-        opacity: 1;
-        max-height: 1000px;
-    }
+/* Note Content */
+.note-content {
+    margin-top: 0;
 }
 
 .note-text-full,
@@ -2822,39 +2802,174 @@ body.papermind-enhanced-mode .papermind-original {
     margin-bottom: 4px;
 }
 
-/* Edit Mode */
-.note-edit-mode {
-    margin-top: 12px;
-    animation: slideDown 0.2s ease;
+/* Edit Note Modal */
+.papermind-edit-note-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
-.note-edit-field {
-    margin-bottom: 12px;
+.papermind-edit-note-modal.show {
+    opacity: 1;
 }
 
-.note-edit-field label {
-    display: block;
-    font-size: 12px;
+.papermind-edit-note-modal.closing {
+    opacity: 0;
+}
+
+.edit-note-modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    transform: scale(0.9);
+    transition: transform 0.2s ease;
+}
+
+.papermind-edit-note-modal.show .edit-note-modal-content {
+    transform: scale(1);
+}
+
+.edit-note-modal-header {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+    padding: 20px 24px;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.edit-note-modal-header h3 {
+    margin: 0;
+    font-size: 20px;
     font-weight: 600;
-    color: #333;
-    margin-bottom: 4px;
 }
 
-.note-edit-field textarea {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: inherit;
-    resize: vertical;
-    transition: border-color 0.2s;
+.edit-note-modal-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 32px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: background 0.2s;
 }
 
-.note-edit-field textarea:focus {
+.edit-note-modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.edit-note-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.edit-note-section {
+    margin-bottom: 20px;
+}
+
+.edit-note-section:last-child {
+    margin-bottom: 0;
+}
+
+.edit-note-section strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #1976D2;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.edit-note-section .editable {
+    background: #f8f9fa;
+    padding: 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    min-height: 60px;
+    font-size: 14px;
+    line-height: 1.6;
+    transition: all 0.2s;
+    cursor: text;
+}
+
+.edit-note-section .editable:hover {
+    border-color: #90CAF9;
+    background: #fff;
+}
+
+.edit-note-section .editable:focus {
     outline: none;
     border-color: #4FC3F7;
     box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
+    background: #fff;
+}
+
+.edit-note-keypoints {
+    padding-left: 32px;
+}
+
+.edit-note-keypoints li {
+    margin: 8px 0;
+}
+
+.edit-note-modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.edit-note-cancel,
+.edit-note-save {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-note-cancel {
+    background: #e9ecef;
+    color: #666;
+}
+
+.edit-note-cancel:hover {
+    background: #dee2e6;
+}
+
+.edit-note-save {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+}
+
+.edit-note-save:hover {
+    background: linear-gradient(135deg, #29B6F6 0%, #1E88E5 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
 }
 
 .note-edit-actions {
@@ -3229,19 +3344,55 @@ body.papermind-enhanced-mode .papermind-original {
         color: #ccc;
     }
 
-    .note-edit-field label {
-        color: #e0e0e0;
+    /* Edit Note Modal Dark Mode */
+    .edit-note-modal-content {
+        background: #2d2d2d;
     }
 
-    .note-edit-field textarea {
+    .edit-note-modal-header {
+        background: linear-gradient(135deg, #5AB9EA 0%, #4FC3F7 100%);
+    }
+
+    .edit-note-section strong {
+        color: #5AB9EA;
+    }
+
+    .edit-note-section .editable {
         background: #1f1f1f;
         border-color: #444;
         color: #e0e0e0;
     }
 
-    .note-edit-field textarea:focus {
+    .edit-note-section .editable:hover {
+        border-color: #5AB9EA;
+        background: #2d2d2d;
+    }
+
+    .edit-note-section .editable:focus {
         border-color: #5AB9EA;
         box-shadow: 0 0 0 3px rgba(90, 185, 234, 0.2);
+        background: #333;
+    }
+
+    .edit-note-modal-footer {
+        border-top-color: #444;
+    }
+
+    .edit-note-cancel {
+        background: #333;
+        color: #e0e0e0;
+    }
+
+    .edit-note-cancel:hover {
+        background: #444;
+    }
+
+    .edit-note-save {
+        background: linear-gradient(135deg, #5AB9EA 0%, #4FC3F7 100%);
+    }
+
+    .edit-note-save:hover {
+        background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     }
 
     .note-save {
@@ -3400,5 +3551,682 @@ body.papermind-enhanced-mode .papermind-original {
 
     .btn-back:hover {
         background: #333;
+    }
+
+    .papermind-table-image-menu {
+        background: #1f1f1f;
+        border: 1px solid #444;
+    }
+
+    .menu-header {
+        background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+    }
+
+    .menu-action-btn {
+        background: #2a2a2a;
+        color: #e0e0e0;
+        border: 1px solid #444;
+    }
+
+    .menu-action-btn:hover {
+        background: #333;
+        border-color: #1E88E5;
+    }
+
+    .papermind-toast {
+        background: #1f1f1f;
+        color: #e0e0e0;
+        border: 1px solid #444;
+    }
+
+    .note-type-badge {
+        background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+    }
+
+    .note-table-container table {
+        background: #1f1f1f;
+        color: #e0e0e0;
+        border-color: #444;
+    }
+
+    .note-table-container th {
+        background: #2a2a2a;
+        border-color: #444;
+    }
+
+    .note-table-container td {
+        border-color: #444;
+    }
+}
+
+/* Table/Image Menu */
+.papermind-table-image-menu {
+    position: absolute;
+    background: white;
+    border: 2px solid #4FC3F7;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    min-width: 200px;
+    animation: slideIn 0.2s ease;
+}
+
+.table-image-menu-content {
+    padding: 8px;
+}
+
+.menu-header {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+    padding: 10px 12px;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+    font-size: 14px;
+    margin: -8px -8px 8px -8px;
+}
+
+.menu-action-btn {
+    width: 100%;
+    padding: 10px 12px;
+    margin: 4px 0;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.menu-action-btn:hover {
+    background: #f8f9fa;
+    border-color: #4FC3F7;
+    transform: translateX(4px);
+}
+
+.save-to-notes-btn {
+    color: #1976D2;
+}
+
+.close-menu-btn {
+    color: #666;
+}
+
+/* Toast Notifications */
+.papermind-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    color: #333;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    z-index: 100001;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+}
+
+.papermind-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.papermind-toast.success {
+    border-left: 4px solid #4FC3F7;
+}
+
+.papermind-toast.error {
+    border-left: 4px solid #f44336;
+}
+
+/* Table/Image Notes Styling */
+.note-type-badge {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.note-caption {
+    margin-bottom: 12px;
+    color: #1976D2;
+    font-size: 14px;
+}
+
+.note-table-container {
+    overflow-x: auto;
+    margin-top: 8px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.note-table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.note-table-container th,
+.note-table-container td {
+    padding: 8px;
+    border: 1px solid #e9ecef;
+    text-align: left;
+}
+
+.note-table-container th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.note-image-container {
+    margin-top: 8px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+}
+
+.note-image-container img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.note-table,
+.note-image {
+    border-left: 4px solid #4FC3F7;
+}
+
+/* ========================================
+   ADHD MODE STYLES
+   ======================================== */
+
+/* ADHD Section Styling */
+.adhd-section {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    margin: 24px auto;
+    max-width: 900px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-left: 5px solid #4FC3F7;
+    transition: all 0.3s ease;
+}
+
+.adhd-section:hover {
+    box-shadow: 0 8px 30px rgba(79, 195, 247, 0.2);
+    transform: translateY(-2px);
+}
+
+/* TL;DR Badge */
+.adhd-tldr {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.3);
+}
+
+.adhd-tldr .tldr-icon {
+    font-size: 24px;
+}
+
+/* Time Estimate */
+.adhd-time-estimate {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0f9ff;
+    color: #1976D2;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.adhd-time-estimate .time-icon {
+    font-size: 16px;
+}
+
+/* Section Header */
+.adhd-header {
+    color: #1976D2;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 20px 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.adhd-header .section-emoji {
+    font-size: 28px;
+}
+
+/* Key Points */
+.adhd-key-points {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.adhd-key-points h4 {
+    color: #1976D2;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.adhd-key-points .key-points-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.adhd-key-points .key-points-list li {
+    padding: 12px 16px;
+    margin: 8px 0;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid #4FC3F7;
+    line-height: 1.6;
+}
+
+.adhd-key-points .key-points-list li strong {
+    color: #1976D2;
+    font-weight: 700;
+}
+
+/* Why This Matters */
+.adhd-why-matters {
+    background: #fff3cd;
+    border-left: 5px solid #FFA500;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.adhd-why-matters h4 {
+    color: #ff8c00;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.adhd-why-matters p {
+    color: #856404;
+    font-size: 15px;
+    line-height: 1.7;
+    margin: 0;
+}
+
+/* Quick Facts */
+.adhd-quick-facts {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.adhd-quick-facts h4 {
+    color: #1976D2;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.adhd-quick-facts .facts-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.adhd-quick-facts .facts-list li {
+    background: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border-left: 3px solid #29B6F6;
+    font-size: 14px;
+}
+
+.adhd-quick-facts .facts-list li strong {
+    color: #1976D2;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Expandable Details */
+.adhd-details {
+    margin: 20px 0;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.adhd-details summary {
+    background: #f8f9fa;
+    padding: 16px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #1976D2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.adhd-details summary:hover {
+    background: #e9ecef;
+}
+
+.adhd-details[open] summary {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+    border-bottom: 2px solid #e9ecef;
+}
+
+.adhd-details .details-content {
+    padding: 20px;
+    background: white;
+}
+
+.adhd-details .details-content p {
+    line-height: 1.7;
+    margin: 12px 0;
+}
+
+/* Completion Tracking */
+.completion-tracker {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid #e9ecef;
+}
+
+.completion-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    color: #666;
+    transition: color 0.2s;
+}
+
+.completion-checkbox:hover {
+    color: #4FC3F7;
+}
+
+.completion-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #4FC3F7;
+}
+
+.completion-checkbox input[type="checkbox"]:checked+.checkmark-label {
+    color: #4ade80;
+    text-decoration: line-through;
+}
+
+.section-completed {
+    opacity: 0.7;
+    background: #f0f9ff !important;
+}
+
+/* Celebration Popup */
+.adhd-celebration-popup {
+    position: fixed;
+    bottom: 80px;
+    right: 24px;
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    color: white;
+    padding: 20px 28px;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(74, 222, 128, 0.4);
+    z-index: 100001;
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.adhd-celebration-popup.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.adhd-celebration-popup .celebration-content {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.adhd-celebration-popup .progress-text {
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 8px;
+    opacity: 0.9;
+}
+
+/* Progressive Reveal */
+.hidden-progressive {
+    display: none !important;
+}
+
+.current-section {
+    animation: slideIn 0.5s ease;
+    box-shadow: 0 0 0 3px #4FC3F7;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.adhd-next-section-btn {
+    display: block;
+    width: 100%;
+    margin-top: 24px;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.3);
+}
+
+.adhd-next-section-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 195, 247, 0.5);
+}
+
+/* Reading Progress Bar */
+.adhd-reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    z-index: 99999;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.adhd-reading-progress .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4FC3F7, #29B6F6);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.adhd-reading-progress .progress-label {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(79, 195, 247, 0.9);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    backdrop-filter: blur(4px);
+}
+
+/* ADHD Mode Body Class Adjustments */
+.papermind-adhd-mode {
+    scroll-behavior: smooth;
+}
+
+.papermind-adhd-mode section {
+    scroll-margin-top: 80px;
+}
+
+/* Dark Mode Support for ADHD Features */
+@media (prefers-color-scheme: dark) {
+    .adhd-section {
+        background: #1f1f1f;
+        color: #e0e0e0;
+        border-left-color: #1E88E5;
+    }
+
+    .adhd-tldr {
+        background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+    }
+
+    .adhd-time-estimate {
+        background: #2a2a2a;
+        color: #90CAF9;
+    }
+
+    .adhd-header {
+        color: #90CAF9;
+    }
+
+    .adhd-key-points {
+        background: #2a2a2a;
+    }
+
+    .adhd-key-points .key-points-list li {
+        background: #1f1f1f;
+        border-left-color: #1E88E5;
+    }
+
+    .adhd-key-points .key-points-list li strong {
+        color: #90CAF9;
+    }
+
+    .adhd-why-matters {
+        background: #3a3000;
+        border-left-color: #FFA500;
+    }
+
+    .adhd-why-matters h4 {
+        color: #FFA500;
+    }
+
+    .adhd-why-matters p {
+        color: #d4b57f;
+    }
+
+    .adhd-quick-facts {
+        background: #2a2a2a;
+    }
+
+    .adhd-quick-facts h4 {
+        color: #90CAF9;
+    }
+
+    .adhd-quick-facts .facts-list li {
+        background: #1f1f1f;
+        border-left-color: #1E88E5;
+    }
+
+    .adhd-quick-facts .facts-list li strong {
+        color: #90CAF9;
+    }
+
+    .adhd-details {
+        border-color: #444;
+    }
+
+    .adhd-details summary {
+        background: #2a2a2a;
+        color: #90CAF9;
+    }
+
+    .adhd-details summary:hover {
+        background: #333;
+    }
+
+    .adhd-details[open] summary {
+        background: #2a2a2a;
+        border-bottom-color: #444;
+    }
+
+    .adhd-details .details-content {
+        background: #1f1f1f;
+        color: #e0e0e0;
+    }
+
+    .completion-tracker {
+        border-top-color: #444;
+    }
+
+    .completion-checkbox {
+        color: #ccc;
+    }
+
+    .section-completed {
+        background: #2a2a2a !important;
+    }
+
+    .adhd-reading-progress {
+        background: rgba(31, 31, 31, 0.95);
+    }
+
+    .adhd-reading-progress .progress-bar-fill {
+        background: linear-gradient(90deg, #1E88E5, #1565C0);
+    }
+
+    .adhd-reading-progress .progress-label {
+        background: rgba(30, 136, 229, 0.9);
     }
 }

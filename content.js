@@ -16,13 +16,24 @@ class PaperMind {
         this.paperData = null;
         this.summaryPanel = null;
         this.highlightedText = '';
+        this.adhdMode = false;
+        this.adhdSettings = {
+            showTimeEstimates: true,
+            completionTracking: true,
+            progressiveReveal: false
+        };
+        this.completedSections = new Set();
+        this.currentSectionIndex = 0;
         this.init();
     }
 
-    init() {
+    async init() {
         // Check if current page is a research paper
         if (this.isResearchPaper()) {
             console.log('🧠 PaperMind: Research paper detected!');
+
+            // Load ADHD mode settings
+            await this.loadADHDSettings();
 
             // Extract paper content immediately (ready for analysis when user clicks)
             this.extractPaperContent();
@@ -31,7 +42,39 @@ class PaperMind {
             // Create UI elements
             this.createFloatingButton();
             this.setupEventListeners();
+
+            // Apply ADHD mode if enabled
+            if (this.adhdMode) {
+                this.enableADHDMode();
+            }
         }
+    }
+
+    async loadADHDSettings() {
+        try {
+            const result = await chrome.storage.sync.get([
+                'adhdMode',
+                'showTimeEstimates',
+                'completionTracking',
+                'progressiveReveal'
+            ]);
+
+            this.adhdMode = result.adhdMode || false;
+            this.adhdSettings = {
+                showTimeEstimates: result.showTimeEstimates !== false,
+                completionTracking: result.completionTracking !== false,
+                progressiveReveal: result.progressiveReveal || false
+            };
+
+            console.log(`PaperMind: ADHD Mode ${this.adhdMode ? 'ENABLED 🎯' : 'disabled'}`);
+        } catch (error) {
+            console.error('Error loading ADHD settings:', error);
+        }
+    }
+
+    enableADHDMode() {
+        document.body.classList.add('papermind-adhd-mode');
+        console.log('🎯 PaperMind: ADHD Mode features activated');
     }
 
     isResearchPaper() {
@@ -76,6 +119,7 @@ class PaperMind {
         panel.innerHTML = `
             <div class="panel-header">
                 <div class="panel-title">
+                    <img src="${chrome.runtime.getURL('dist/Logo.png')}" alt="PaperMind Logo" class="panel-logo">
                     <span class="panel-title-text">PaperMind</span>
                 </div>
                 <div class="panel-header-controls">
@@ -575,6 +619,28 @@ class PaperMind {
             }
         });
 
+        // Listen for clicks on tables and images
+        document.addEventListener('click', (e) => {
+            // Don't trigger on clicks inside PaperMind UI elements
+            if (e.target.closest('.papermind-search-bar') ||
+                e.target.closest('.papermind-knowledge-panel') ||
+                e.target.closest('.papermind-container')) {
+                return;
+            }
+
+            // Check if clicked on a table or image
+            const table = e.target.closest('table');
+            const figure = e.target.closest('figure');
+            const img = e.target.tagName === 'IMG' ? e.target : e.target.closest('img');
+
+            if (table) {
+                this.showTableImageMenu(e, 'table', table);
+            } else if (figure || img) {
+                const targetElement = figure || img;
+                this.showTableImageMenu(e, 'image', targetElement);
+            }
+        });
+
         // Listen for messages from background script
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request.action === 'analyzePaper') {
@@ -690,6 +756,131 @@ class PaperMind {
         }, 100);
     }
 
+    showTableImageMenu(event, type, element) {
+        // Remove existing menu
+        const existing = document.querySelector('.papermind-table-image-menu');
+        if (existing) {
+            existing.remove();
+        }
+
+        // Create menu
+        const menu = document.createElement('div');
+        menu.className = 'papermind-table-image-menu';
+
+        const icon = type === 'table' ? '📊' : '🖼️';
+        const label = type === 'table' ? 'Table' : 'Image';
+
+        menu.innerHTML = `
+            <div class="table-image-menu-content">
+                <div class="menu-header">${icon} ${label}</div>
+                <button class="menu-action-btn save-to-notes-btn">
+                    💾 Save to Study Notes
+                </button>
+                <button class="menu-action-btn close-menu-btn">
+                    ✕ Close
+                </button>
+            </div>
+        `;
+
+        // Position menu near the clicked element
+        const rect = element.getBoundingClientRect();
+        menu.style.left = `${rect.left + window.scrollX}px`;
+        menu.style.top = `${rect.bottom + window.scrollY + 8}px`;
+
+        document.body.appendChild(menu);
+
+        // Save to notes button
+        const saveBtn = menu.querySelector('.save-to-notes-btn');
+        saveBtn.addEventListener('click', () => {
+            this.saveTableImageToNotes(type, element);
+            menu.remove();
+        });
+
+        // Close button
+        const closeBtn = menu.querySelector('.close-menu-btn');
+        closeBtn.addEventListener('click', () => {
+            menu.remove();
+        });
+
+        // Close on click outside
+        const closeHandler = (e) => {
+            if (!e.target.closest('.papermind-table-image-menu') &&
+                !e.target.closest('table') &&
+                !e.target.closest('figure') &&
+                e.target.tagName !== 'IMG') {
+                menu.remove();
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeHandler), 100);
+    }
+
+    async saveTableImageToNotes(type, element) {
+        try {
+            let content = '';
+            let caption = '';
+            let imageData = null;
+
+            if (type === 'table') {
+                // Extract table HTML
+                content = element.outerHTML;
+
+                // Try to find caption
+                const captionEl = element.querySelector('caption') ||
+                    element.closest('figure')?.querySelector('figcaption');
+                caption = captionEl ? captionEl.textContent.trim() : 'Table';
+
+            } else if (type === 'image') {
+                // Extract image data
+                const img = element.tagName === 'IMG' ? element : element.querySelector('img');
+                if (img) {
+                    imageData = {
+                        src: img.src,
+                        alt: img.alt || 'Image',
+                        width: img.naturalWidth,
+                        height: img.naturalHeight
+                    };
+
+                    // Try to find caption
+                    const captionEl = element.querySelector('figcaption') ||
+                        element.closest('figure')?.querySelector('figcaption');
+                    caption = captionEl ? captionEl.textContent.trim() : img.alt || 'Image';
+                }
+            }
+
+            const note = {
+                paperUrl: this.paperData?.url || window.location.href,
+                paperTitle: this.paperData?.title || document.title,
+                type: type, // 'table' or 'image'
+                content: content,
+                imageData: imageData,
+                caption: caption,
+                timestamp: Date.now()
+            };
+
+            await this.saveToStudyNotes(note);
+
+            // Show success message
+            this.showToast(`${type === 'table' ? '📊 Table' : '🖼️ Image'} saved to Study Notes!`);
+
+        } catch (error) {
+            console.error('Error saving table/image to notes:', error);
+            this.showToast('❌ Failed to save to notes', 'error');
+        }
+    }
+
+    showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `papermind-toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 2000);
+    }
 
     async generateExplanation(mode, customPrompt = '') {
         // Show side panel for results (non-blocking)
@@ -1069,37 +1260,60 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
             notesList.innerHTML = currentPaperNotes.map((note, index) => {
                 const hasKeyPoints = note.keyPoints && note.keyPoints.length > 0;
-                const isLongText = (note.selectedText || '').length > 60;
-                const isLongExplanation = (note.explanation || '').length > 150;
-                const needsExpand = isLongText || isLongExplanation || hasKeyPoints;
+                const isTableOrImage = note.type === 'table' || note.type === 'image';
 
+                // Handle table/image notes differently
+                if (isTableOrImage) {
+                    const icon = note.type === 'table' ? '📊' : '🖼️';
+                    return `
+                        <div class="note-item note-${note.type}" data-index="${index}">
+                            <div class="note-header">
+                                <div class="note-type-badge">${icon} ${note.type.toUpperCase()}</div>
+                                <div class="note-actions">
+                                    <button class="note-delete" data-index="${index}" title="Delete">×</button>
+                                </div>
+                            </div>
+                            
+                            <div class="note-content">
+                                ${note.caption ? `
+                                    <div class="note-caption">
+                                        <strong>${note.caption}</strong>
+                                    </div>
+                                ` : ''}
+                                
+                                ${note.type === 'table' ? `
+                                    <div class="note-table-container">
+                                        ${note.content}
+                                    </div>
+                                ` : ''}
+                                
+                                ${note.type === 'image' && note.imageData ? `
+                                    <div class="note-image-container">
+                                        <img src="${note.imageData.src}" 
+                                             alt="${note.imageData.alt}" 
+                                             style="max-width: 100%; height: auto;">
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="note-footer">
+                                <small>${new Date(note.timestamp).toLocaleString()}</small>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Regular text notes
                 return `
-                    <div class="note-item ${needsExpand ? 'expandable' : ''}" data-index="${index}">
+                    <div class="note-item" data-index="${index}">
                         <div class="note-header">
-                            <span class="note-badge">${note.prompt}</span>
                             <div class="note-actions">
                                 <button class="note-edit" data-index="${index}" title="Edit">✎</button>
                                 <button class="note-delete" data-index="${index}" title="Delete">×</button>
                             </div>
                         </div>
                         
-                        <!-- Preview Mode (Collapsed) -->
-                        <div class="note-preview">
-                            <div class="note-text">
-                                <strong>Selected:</strong> "${note.selectedText.substring(0, 60)}${isLongText ? '...' : ''}"
-                            </div>
-                            ${hasKeyPoints
-                        ? `<div class="note-key-points-preview">
-                                    <strong>Key Points:</strong> ${note.keyPoints.length} points
-                                   </div>`
-                        : `<div class="note-explanation">
-                                    ${(note.explanation || '').substring(0, 150)}${isLongExplanation ? '...' : ''}
-                                   </div>`
-                    }
-                        </div>
-                        
-                        <!-- Full Content (Expanded) -->
-                        <div class="note-full-content hidden">
+                        <div class="note-content">
                             <div class="note-text-full">
                                 <strong>Selected Text:</strong>
                                 <div class="note-selected-text">${note.selectedText}</div>
@@ -1122,32 +1336,8 @@ Provide a focused answer to the follow-up question, building on the previous exp
                             ` : ''}
                         </div>
                         
-                        <!-- Edit Mode -->
-                        <div class="note-edit-mode hidden">
-                            <div class="note-edit-field">
-                                <label>Selected Text:</label>
-                                <textarea class="note-edit-selected" rows="3">${note.selectedText}</textarea>
-                            </div>
-                            
-                            <div class="note-edit-field">
-                                <label>Explanation:</label>
-                                <textarea class="note-edit-explanation" rows="6">${note.explanation || ''}</textarea>
-                            </div>
-                            
-                            <div class="note-edit-field">
-                                <label>Key Points (one per line):</label>
-                                <textarea class="note-edit-keypoints" rows="4">${hasKeyPoints ? note.keyPoints.join('\n') : ''}</textarea>
-                            </div>
-                            
-                            <div class="note-edit-actions">
-                                <button class="note-save" data-index="${index}">Save</button>
-                                <button class="note-cancel" data-index="${index}">Cancel</button>
-                            </div>
-                        </div>
-                        
                         <div class="note-footer">
                             <small>${new Date(note.timestamp).toLocaleString()}</small>
-                            ${needsExpand ? '<button class="note-expand-toggle">Show more</button>' : ''}
                         </div>
                     </div>
                 `;
@@ -1162,69 +1352,13 @@ Provide a focused answer to the follow-up question, building on the previous exp
     }
 
     attachNoteEventHandlers(notesList, currentPaperNotes) {
-        // Expand/Collapse toggle
-        notesList.querySelectorAll('.note-expand-toggle').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const noteItem = e.target.closest('.note-item');
-                const preview = noteItem.querySelector('.note-preview');
-                const fullContent = noteItem.querySelector('.note-full-content');
-                const isExpanded = !fullContent.classList.contains('hidden');
-
-                if (isExpanded) {
-                    fullContent.classList.add('hidden');
-                    preview.classList.remove('hidden');
-                    btn.textContent = 'Show more';
-                } else {
-                    fullContent.classList.remove('hidden');
-                    preview.classList.add('hidden');
-                    btn.textContent = 'Show less';
-                }
-            });
-        });
-
-        // Edit button
+        // Edit button - Show modal popup
         notesList.querySelectorAll('.note-edit').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const noteItem = e.target.closest('.note-item');
-                const preview = noteItem.querySelector('.note-preview');
-                const fullContent = noteItem.querySelector('.note-full-content');
-                const editMode = noteItem.querySelector('.note-edit-mode');
-
-                preview.classList.add('hidden');
-                fullContent.classList.add('hidden');
-                editMode.classList.remove('hidden');
-            });
-        });
-
-        // Save button
-        notesList.querySelectorAll('.note-save').forEach(btn => {
-            btn.addEventListener('click', (e) => {
                 const index = parseInt(e.target.dataset.index);
-                const noteItem = e.target.closest('.note-item');
-
-                const selectedText = noteItem.querySelector('.note-edit-selected').value;
-                const explanation = noteItem.querySelector('.note-edit-explanation').value;
-                const keyPointsText = noteItem.querySelector('.note-edit-keypoints').value;
-                const keyPoints = keyPointsText.split('\n').filter(p => p.trim()).map(p => p.trim());
-
-                this.updateStudyNote(index, {
-                    selectedText,
-                    explanation,
-                    keyPoints
-                });
-            });
-        });
-
-        // Cancel button
-        notesList.querySelectorAll('.note-cancel').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const noteItem = e.target.closest('.note-item');
-                const preview = noteItem.querySelector('.note-preview');
-                const editMode = noteItem.querySelector('.note-edit-mode');
-
-                editMode.classList.add('hidden');
-                preview.classList.remove('hidden');
+                const note = currentPaperNotes[index];
+                this.showEditNoteModal(note, index);
             });
         });
 
@@ -1236,6 +1370,112 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 this.deleteStudyNote(index);
             });
         });
+    }
+
+    showEditNoteModal(note, index) {
+        // Remove any existing modal
+        const existingModal = document.querySelector('.papermind-edit-note-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'papermind-edit-note-modal';
+
+        const hasKeyPoints = note.keyPoints && note.keyPoints.length > 0;
+
+        modal.innerHTML = `
+            <div class="edit-note-modal-content">
+                <div class="edit-note-modal-header">
+                    <h3>✎ Edit Note</h3>
+                    <button class="edit-note-modal-close">×</button>
+                </div>
+                
+                <div class="edit-note-modal-body">
+                    <div class="edit-note-section">
+                        <strong>Selected Text:</strong>
+                        <div class="edit-note-text editable" contenteditable="true" data-field="selectedText">${note.selectedText}</div>
+                    </div>
+                    
+                    ${note.explanation ? `
+                        <div class="edit-note-section">
+                            <strong>Explanation:</strong>
+                            <div class="edit-note-explanation editable" contenteditable="true" data-field="explanation">${note.explanation}</div>
+                        </div>
+                    ` : ''}
+                    
+                    ${hasKeyPoints ? `
+                        <div class="edit-note-section">
+                            <strong>Key Points:</strong>
+                            <ul class="edit-note-keypoints editable" contenteditable="true" data-field="keyPoints">
+                                ${note.keyPoints.map(point => `<li>${point}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="edit-note-modal-footer">
+                    <button class="edit-note-cancel">Cancel</button>
+                    <button class="edit-note-save">💾 Save Changes</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Add event listeners
+        const closeBtn = modal.querySelector('.edit-note-modal-close');
+        const cancelBtn = modal.querySelector('.edit-note-cancel');
+        const saveBtn = modal.querySelector('.edit-note-save');
+
+        const closeModal = () => {
+            modal.classList.add('closing');
+            setTimeout(() => modal.remove(), 200);
+        };
+
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+
+        // Click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Save button
+        saveBtn.addEventListener('click', () => {
+            const modalBody = modal.querySelector('.edit-note-modal-body');
+
+            // Get values from contenteditable elements
+            const selectedTextEl = modalBody.querySelector('[data-field="selectedText"]');
+            const explanationEl = modalBody.querySelector('[data-field="explanation"]');
+            const keyPointsEl = modalBody.querySelector('[data-field="keyPoints"]');
+
+            const selectedText = selectedTextEl ? selectedTextEl.textContent.trim() : '';
+            const explanation = explanationEl ? explanationEl.textContent.trim() : '';
+
+            // Extract key points from list items
+            let keyPoints = [];
+            if (keyPointsEl) {
+                const listItems = keyPointsEl.querySelectorAll('li');
+                keyPoints = Array.from(listItems)
+                    .map(li => li.textContent.trim())
+                    .filter(text => text.length > 0);
+            }
+
+            this.updateStudyNote(index, {
+                selectedText,
+                explanation,
+                keyPoints
+            });
+
+            closeModal();
+        });
+
+        // Animate in
+        setTimeout(() => modal.classList.add('show'), 10);
     }
 
     async updateStudyNote(index, updates) {
@@ -1402,6 +1642,95 @@ Provide a focused answer to the follow-up question, building on the previous exp
         }
     }
 
+    htmlTableToMarkdown(htmlString) {
+        try {
+            // Create a temporary element to parse the HTML
+            const temp = document.createElement('div');
+            temp.innerHTML = htmlString;
+            const table = temp.querySelector('table');
+
+            if (!table) return '*Table could not be converted*';
+
+            let markdown = '';
+            const rows = table.querySelectorAll('tr');
+
+            if (rows.length === 0) return '*Empty table*';
+
+            // Process each row
+            rows.forEach((row, rowIndex) => {
+                const cells = row.querySelectorAll('th, td');
+                const cellContents = Array.from(cells).map(cell => {
+                    return this.extractCellContent(cell);
+                });
+
+                // Create markdown row
+                markdown += '| ' + cellContents.join(' | ') + ' |\n';
+
+                // Add separator after header row (first row or if it contains <th>)
+                if (rowIndex === 0 || row.querySelector('th')) {
+                    const separator = cellContents.map(() => '---').join(' | ');
+                    markdown += '| ' + separator + ' |\n';
+                }
+            });
+
+            return markdown;
+        } catch (error) {
+            console.error('Error converting table to markdown:', error);
+            return '*Table conversion failed*';
+        }
+    }
+
+    extractCellContent(cell) {
+        // Clone the cell to avoid modifying the original
+        const cellClone = cell.cloneNode(true);
+
+        // Handle math elements (MathML, LaTeX annotations)
+        const mathElements = cellClone.querySelectorAll('math, .ltx_Math, .MathJax, mjx-container');
+        mathElements.forEach(mathEl => {
+            let mathText = '';
+
+            // Try to get LaTeX annotation
+            const annotation = mathEl.querySelector('annotation[encoding="application/x-tex"]');
+            if (annotation) {
+                mathText = annotation.textContent;
+            } else {
+                // Fallback: get text content
+                mathText = mathEl.textContent;
+            }
+
+            // Wrap in inline math delimiters
+            const inlineMath = `$${mathText}$`;
+
+            // Replace the math element with the LaTeX text
+            const textNode = document.createTextNode(inlineMath);
+            mathEl.parentNode.replaceChild(textNode, mathEl);
+        });
+
+        // Handle subscripts and superscripts
+        const subs = cellClone.querySelectorAll('sub');
+        subs.forEach(sub => {
+            const text = document.createTextNode(`_{${sub.textContent}}`);
+            sub.parentNode.replaceChild(text, sub);
+        });
+
+        const sups = cellClone.querySelectorAll('sup');
+        sups.forEach(sup => {
+            const text = document.createTextNode(`^{${sup.textContent}}`);
+            sup.parentNode.replaceChild(text, sup);
+        });
+
+        // Get final text content and clean it
+        let content = cellClone.textContent.trim();
+
+        // Clean up extra whitespace but preserve single spaces
+        content = content.replace(/\s+/g, ' ');
+
+        // Escape pipes in cell content to avoid breaking table format
+        content = content.replace(/\|/g, '\\|');
+
+        return content;
+    }
+
     formatNotesAsMarkdown(notes) {
         const paperTitle = this.paperData?.title || document.title;
         const paperUrl = window.location.href;
@@ -1415,8 +1744,34 @@ Provide a focused answer to the follow-up question, building on the previous exp
         markdown += `---\n\n`;
 
         notes.forEach((note, index) => {
-            markdown += `## Note ${index + 1}: ${note.prompt}\n\n`;
-            markdown += `**Selected Text:**\n> ${note.selectedText}\n\n`;
+            // Handle table/image notes
+            if (note.type === 'table' || note.type === 'image') {
+                const icon = note.type === 'table' ? '📊' : '🖼️';
+                markdown += `## ${icon} ${note.type.toUpperCase()} ${index + 1}\n\n`;
+
+                if (note.caption) {
+                    markdown += `**Caption:** ${note.caption}\n\n`;
+                }
+
+                if (note.type === 'image' && note.imageData) {
+                    markdown += `![${note.imageData.alt}](${note.imageData.src})\n\n`;
+                } else if (note.type === 'table' && note.content) {
+                    // Convert HTML table to markdown table
+                    const markdownTable = this.htmlTableToMarkdown(note.content);
+                    markdown += markdownTable + '\n\n';
+                }
+
+                markdown += `**Time:** ${new Date(note.timestamp).toLocaleString()}\n\n`;
+                markdown += `---\n\n`;
+                return;
+            }
+
+            // Regular text notes
+            markdown += `## Note ${index + 1}${note.prompt ? `: ${note.prompt}` : ''}\n\n`;
+
+            if (note.selectedText) {
+                markdown += `**Selected Text:**\n> ${note.selectedText}\n\n`;
+            }
 
             // Add key points if available
             if (note.keyPoints && note.keyPoints.length > 0) {
@@ -1742,6 +2097,194 @@ Provide a focused answer to the follow-up question, building on the previous exp
         article.classList.remove('papermind-original');
 
         console.log('PaperMind: Enhanced paper rendered successfully');
+
+        // Apply ADHD mode features if enabled
+        if (this.adhdMode) {
+            this.applyADHDFeatures();
+        }
+    }
+
+    applyADHDFeatures() {
+        console.log('🎯 Applying ADHD Mode features...');
+
+        const sections = document.querySelectorAll('.adhd-section, section.paper-chunk');
+
+        if (sections.length === 0) {
+            console.warn('No sections found to apply ADHD features');
+            return;
+        }
+
+        // Add completion tracking if enabled
+        if (this.adhdSettings.completionTracking) {
+            this.addCompletionTracking(sections);
+        }
+
+        // Apply progressive reveal if enabled
+        if (this.adhdSettings.progressiveReveal) {
+            this.enableProgressiveReveal(sections);
+        }
+
+        // Add reading progress bar
+        this.createReadingProgressBar();
+
+        console.log(`✅ ADHD features applied to ${sections.length} sections`);
+    }
+
+    addCompletionTracking(sections) {
+        sections.forEach((section, index) => {
+            // Check if already has completion tracker
+            if (section.querySelector('.completion-tracker')) {
+                return;
+            }
+
+            const tracker = document.createElement('div');
+            tracker.className = 'completion-tracker';
+            tracker.innerHTML = `
+                <label class="completion-checkbox">
+                    <input type="checkbox" id="section-complete-${index}" data-section-index="${index}">
+                    <span class="checkmark-label">✓ Mark as read</span>
+                </label>
+            `;
+
+            // Add to section
+            section.appendChild(tracker);
+
+            // Add event listener
+            const checkbox = tracker.querySelector('input');
+            checkbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    this.completedSections.add(index);
+                    section.classList.add('section-completed');
+                    this.showCompletionCelebration(index, sections.length);
+                } else {
+                    this.completedSections.delete(index);
+                    section.classList.remove('section-completed');
+                }
+                this.updateReadingProgress();
+            });
+        });
+    }
+
+    showCompletionCelebration(completed, total) {
+        const celebration = document.createElement('div');
+        celebration.className = 'adhd-celebration-popup';
+        celebration.innerHTML = `
+            <div class="celebration-content">
+                🎉 Section Complete!
+                <div class="progress-text">
+                    ${this.completedSections.size} of ${total} done
+                </div>
+            </div>
+        `;
+        document.body.appendChild(celebration);
+
+        setTimeout(() => {
+            celebration.classList.add('show');
+        }, 10);
+
+        setTimeout(() => {
+            celebration.classList.remove('show');
+            setTimeout(() => celebration.remove(), 300);
+        }, 2000);
+    }
+
+    enableProgressiveReveal(sections) {
+        // Hide all sections except the first
+        sections.forEach((section, index) => {
+            if (index > 0) {
+                section.classList.add('hidden-progressive');
+            } else {
+                section.classList.add('current-section');
+            }
+        });
+
+        // Add "Next Section" buttons
+        sections.forEach((section, index) => {
+            if (index < sections.length - 1) {
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'adhd-next-section-btn';
+                nextBtn.innerHTML = '→ Next Section';
+                nextBtn.addEventListener('click', () => {
+                    this.revealNextSection(sections, index);
+                });
+                section.appendChild(nextBtn);
+            }
+        });
+
+        this.currentSectionIndex = 0;
+    }
+
+    revealNextSection(sections, currentIndex) {
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < sections.length) {
+            // Remove current marker
+            sections[currentIndex].classList.remove('current-section');
+
+            // Show next section
+            sections[nextIndex].classList.remove('hidden-progressive');
+            sections[nextIndex].classList.add('current-section');
+
+            // Scroll to next section
+            sections[nextIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            this.currentSectionIndex = nextIndex;
+        }
+    }
+
+    createReadingProgressBar() {
+        // Check if already exists
+        if (document.querySelector('.adhd-reading-progress')) {
+            return;
+        }
+
+        const progressBar = document.createElement('div');
+        progressBar.className = 'adhd-reading-progress';
+        progressBar.innerHTML = `
+            <div class="progress-bar-fill"></div>
+            <div class="progress-label">0%</div>
+        `;
+        document.body.appendChild(progressBar);
+
+        // Update on scroll
+        window.addEventListener('scroll', () => {
+            this.updateReadingProgress();
+        });
+    }
+
+    updateReadingProgress() {
+        const progressBar = document.querySelector('.adhd-reading-progress');
+        if (!progressBar) return;
+
+        const fill = progressBar.querySelector('.progress-bar-fill');
+        const label = progressBar.querySelector('.progress-label');
+
+        const sections = document.querySelectorAll('.adhd-section, section.paper-chunk');
+        const totalSections = sections.length;
+        const completedCount = this.completedSections.size;
+
+        let progress = 0;
+        if (this.adhdSettings.completionTracking && completedCount > 0) {
+            // Progress based on completed sections
+            progress = (completedCount / totalSections) * 100;
+        } else {
+            // Progress based on scroll position
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight - windowHeight;
+            const scrolled = window.scrollY;
+            progress = (scrolled / documentHeight) * 100;
+        }
+
+        progress = Math.min(100, Math.max(0, progress));
+
+        fill.style.width = `${progress}%`;
+        label.textContent = `${Math.round(progress)}%`;
+
+        // Change color when complete
+        if (progress >= 100) {
+            fill.style.background = 'linear-gradient(90deg, #4ade80, #22c55e)';
+        } else {
+            fill.style.background = 'linear-gradient(90deg, #4FC3F7, #29B6F6)';
+        }
     }
 
     escapeHtml(text) {

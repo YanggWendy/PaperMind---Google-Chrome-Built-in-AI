@@ -20,27 +20,36 @@ class PaperMindPopup {
         try {
             const result = await chrome.storage.sync.get([
                 'autoAnalyze',
-                'showDiagrams',
                 'highlightMode',
                 'aiModel',
-                'language'
+                'language',
+                'adhdMode',
+                'showTimeEstimates',
+                'completionTracking',
+                'progressiveReveal'
             ]);
 
             this.settings = {
                 autoAnalyze: result.autoAnalyze !== false,
-                showDiagrams: result.showDiagrams !== false,
                 highlightMode: result.highlightMode || false,
                 aiModel: result.aiModel || 'gemini-nano',
-                language: result.language || 'en'
+                language: result.language || 'en',
+                adhdMode: result.adhdMode || false,
+                showTimeEstimates: result.showTimeEstimates !== false,
+                completionTracking: result.completionTracking !== false,
+                progressiveReveal: result.progressiveReveal || false
             };
         } catch (error) {
             console.error('Error loading settings:', error);
             this.settings = {
                 autoAnalyze: true,
-                showDiagrams: true,
                 highlightMode: false,
                 aiModel: 'gemini-nano',
-                language: 'en'
+                language: 'en',
+                adhdMode: false,
+                showTimeEstimates: true,
+                completionTracking: true,
+                progressiveReveal: false
             };
         }
     }
@@ -135,6 +144,18 @@ class PaperMindPopup {
 
         resetSettings.addEventListener('click', () => {
             this.resetSettings();
+        });
+
+        // ADHD Mode toggle - show/hide subsettings
+        const adhdModeCheckbox = document.getElementById('adhd-mode');
+        const adhdSubsettings = document.getElementById('adhd-subsettings');
+
+        adhdModeCheckbox.addEventListener('change', () => {
+            if (adhdModeCheckbox.checked) {
+                adhdSubsettings.style.display = 'block';
+            } else {
+                adhdSubsettings.style.display = 'none';
+            }
         });
 
         // Help modal
@@ -282,17 +303,27 @@ class PaperMindPopup {
 
     populateSettingsForm() {
         document.getElementById('auto-analyze').checked = this.settings.autoAnalyze;
-        document.getElementById('show-diagrams').checked = this.settings.showDiagrams;
         document.getElementById('highlight-mode').checked = this.settings.highlightMode;
+        document.getElementById('adhd-mode').checked = this.settings.adhdMode;
+        document.getElementById('show-time-estimates').checked = this.settings.showTimeEstimates;
+        document.getElementById('completion-tracking').checked = this.settings.completionTracking;
+        document.getElementById('progressive-reveal').checked = this.settings.progressiveReveal;
         document.getElementById('ai-model-select').value = this.settings.aiModel;
         document.getElementById('language-select').value = this.settings.language;
+
+        // Show/hide ADHD subsettings based on current state
+        const adhdSubsettings = document.getElementById('adhd-subsettings');
+        adhdSubsettings.style.display = this.settings.adhdMode ? 'block' : 'none';
     }
 
     async saveSettings() {
         const newSettings = {
             autoAnalyze: document.getElementById('auto-analyze').checked,
-            showDiagrams: document.getElementById('show-diagrams').checked,
             highlightMode: document.getElementById('highlight-mode').checked,
+            adhdMode: document.getElementById('adhd-mode').checked,
+            showTimeEstimates: document.getElementById('show-time-estimates').checked,
+            completionTracking: document.getElementById('completion-tracking').checked,
+            progressiveReveal: document.getElementById('progressive-reveal').checked,
             aiModel: document.getElementById('ai-model-select').value,
             language: document.getElementById('language-select').value
         };
