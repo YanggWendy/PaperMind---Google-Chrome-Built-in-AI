@@ -163,11 +163,11 @@ class PaperMind {
         let hoverTimeout;
         container.addEventListener('mouseenter', (e) => {
             clearTimeout(hoverTimeout);
-            
+
             if (isClickingButton) {
                 return;
             }
-            
+
             if (!isPinned) {
                 hoverTimeout = setTimeout(() => {
                     if (!isPinned && !isClickingButton) {
@@ -181,7 +181,7 @@ class PaperMind {
         // Hide panel when mouse leaves container (only if not pinned and not analyzing)
         container.addEventListener('mouseleave', (e) => {
             clearTimeout(hoverTimeout);
-            
+
             hoverTimeout = setTimeout(() => {
                 if (!isPinned && !this.isAnalyzing) {
                     panel.classList.add('hidden');
@@ -237,7 +237,7 @@ class PaperMind {
 
         // Only use panel header as drag handle (NOT the button)
         const panelHeader = panel.querySelector('.panel-header');
-        
+
         if (panelHeader) {
             panelHeader.addEventListener('mousedown', dragStart);
             panelHeader.style.cursor = 'move';
@@ -249,7 +249,7 @@ class PaperMind {
         function dragStart(e) {
             // Only drag on left mouse button
             if (e.button !== 0) return;
-            
+
             // Don't drag if clicking on close button or toggle switch
             if (e.target.closest('.panel-close') || e.target.closest('.view-toggle-switch')) {
                 return;
@@ -562,12 +562,12 @@ class PaperMind {
         // Listen for text selection
         document.addEventListener('mouseup', (e) => {
             // Don't trigger on clicks inside PaperMind UI elements
-            if (e.target.closest('.papermind-search-bar') || 
+            if (e.target.closest('.papermind-search-bar') ||
                 e.target.closest('.papermind-knowledge-panel') ||
                 e.target.closest('.papermind-container')) {
                 return;
             }
-            
+
             const selection = window.getSelection();
             if (selection.toString().trim()) {
                 this.highlightedText = selection.toString().trim();
@@ -777,9 +777,11 @@ Format as structured sections with clear headings.`;
             panel.className = 'papermind-knowledge-panel';
             panel.innerHTML = `
                 <div class="knowledge-panel-header">
-                    <span class="panel-title">Knowledge Assistant</span>
-                    <button class="panel-minimize" title="Minimize">−</button>
-                    <button class="panel-close" title="Close">×</button>
+                    <span class="panel-title">🔍 Knowledge Assistant</span>
+                    <div class="panel-header-buttons">
+                        <button class="panel-minimize" title="Minimize">−</button>
+                        <button class="panel-close" title="Close">×</button>
+                    </div>
                 </div>
                 <div class="knowledge-panel-body">
                     <div class="panel-content"></div>
@@ -790,13 +792,20 @@ Format as structured sections with clear headings.`;
             // Make it draggable
             this.makeKnowledgePanelDraggable(panel);
 
-            // Setup header buttons
-            panel.querySelector('.panel-close').addEventListener('click', () => {
+            // Setup header buttons (only once)
+            const closeBtn = panel.querySelector('.panel-close');
+            const minimizeBtn = panel.querySelector('.panel-minimize');
+
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 panel.remove();
             });
 
-            panel.querySelector('.panel-minimize').addEventListener('click', () => {
-                panel.classList.toggle('minimized');
+            minimizeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isMinimized = panel.classList.toggle('minimized');
+                minimizeBtn.textContent = isMinimized ? '+' : '−';
+                minimizeBtn.title = isMinimized ? 'Expand' : 'Minimize';
             });
         }
 
@@ -884,31 +893,57 @@ Format as structured sections with clear headings.`;
     makeKnowledgePanelDraggable(panel) {
         const header = panel.querySelector('.knowledge-panel-header');
         let isDragging = false;
-        let currentX, currentY, initialX, initialY;
+        let offsetX = 0;
+        let offsetY = 0;
 
         header.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('panel-close') ||
-                e.target.classList.contains('panel-minimize')) return;
+            // Don't drag if clicking on buttons
+            if (e.target.closest('.panel-close') ||
+                e.target.closest('.panel-minimize') ||
+                e.target.closest('.panel-header-buttons')) {
+                return;
+            }
 
             isDragging = true;
-            initialX = e.clientX - (parseInt(panel.style.right) || 20);
-            initialY = e.clientY - (parseInt(panel.style.top) || 100);
+
+            // Get current position
+            const rect = panel.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+
             header.style.cursor = 'grabbing';
+            panel.style.transition = 'none'; // Disable animation during drag
         });
 
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
+
             e.preventDefault();
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
+
+            // Calculate new position
+            let newX = e.clientX - offsetX;
+            let newY = e.clientY - offsetY;
+
+            // Constrain to viewport
+            const panelRect = panel.getBoundingClientRect();
+            const maxX = window.innerWidth - panelRect.width;
+            const maxY = window.innerHeight - panelRect.height;
+
+            newX = Math.max(0, Math.min(newX, maxX));
+            newY = Math.max(0, Math.min(newY, maxY));
+
+            // Update position
             panel.style.right = 'auto';
-            panel.style.left = currentX + 'px';
-            panel.style.top = currentY + 'px';
+            panel.style.left = newX + 'px';
+            panel.style.top = newY + 'px';
         });
 
         document.addEventListener('mouseup', () => {
-            isDragging = false;
-            header.style.cursor = 'grab';
+            if (isDragging) {
+                isDragging = false;
+                header.style.cursor = 'grab';
+                panel.style.transition = ''; // Re-enable animations
+            }
         });
     }
 
@@ -1053,14 +1088,14 @@ Provide a focused answer to the follow-up question, building on the previous exp
                             <div class="note-text">
                                 <strong>Selected:</strong> "${note.selectedText.substring(0, 60)}${isLongText ? '...' : ''}"
                             </div>
-                            ${hasKeyPoints 
-                                ? `<div class="note-key-points-preview">
+                            ${hasKeyPoints
+                        ? `<div class="note-key-points-preview">
                                     <strong>Key Points:</strong> ${note.keyPoints.length} points
                                    </div>`
-                                : `<div class="note-explanation">
+                        : `<div class="note-explanation">
                                     ${(note.explanation || '').substring(0, 150)}${isLongExplanation ? '...' : ''}
                                    </div>`
-                            }
+                    }
                         </div>
                         
                         <!-- Full Content (Expanded) -->
@@ -1134,7 +1169,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 const preview = noteItem.querySelector('.note-preview');
                 const fullContent = noteItem.querySelector('.note-full-content');
                 const isExpanded = !fullContent.classList.contains('hidden');
-                
+
                 if (isExpanded) {
                     fullContent.classList.add('hidden');
                     preview.classList.remove('hidden');
@@ -1155,7 +1190,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 const preview = noteItem.querySelector('.note-preview');
                 const fullContent = noteItem.querySelector('.note-full-content');
                 const editMode = noteItem.querySelector('.note-edit-mode');
-                
+
                 preview.classList.add('hidden');
                 fullContent.classList.add('hidden');
                 editMode.classList.remove('hidden');
@@ -1167,12 +1202,12 @@ Provide a focused answer to the follow-up question, building on the previous exp
             btn.addEventListener('click', (e) => {
                 const index = parseInt(e.target.dataset.index);
                 const noteItem = e.target.closest('.note-item');
-                
+
                 const selectedText = noteItem.querySelector('.note-edit-selected').value;
                 const explanation = noteItem.querySelector('.note-edit-explanation').value;
                 const keyPointsText = noteItem.querySelector('.note-edit-keypoints').value;
                 const keyPoints = keyPointsText.split('\n').filter(p => p.trim()).map(p => p.trim());
-                
+
                 this.updateStudyNote(index, {
                     selectedText,
                     explanation,
@@ -1187,7 +1222,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 const noteItem = e.target.closest('.note-item');
                 const preview = noteItem.querySelector('.note-preview');
                 const editMode = noteItem.querySelector('.note-edit-mode');
-                
+
                 editMode.classList.add('hidden');
                 preview.classList.remove('hidden');
             });
@@ -1207,23 +1242,23 @@ Provide a focused answer to the follow-up question, building on the previous exp
         try {
             const result = await chrome.storage.local.get(['studyNotes']);
             const studyNotes = result.studyNotes || [];
-            
+
             // Find notes for current paper
             const currentPaperNotes = studyNotes.filter(note =>
                 note.paperUrl === window.location.href
             );
-            
+
             if (index < currentPaperNotes.length) {
                 const noteToUpdate = currentPaperNotes[index];
                 const globalIndex = studyNotes.indexOf(noteToUpdate);
-                
+
                 // Update the note
                 studyNotes[globalIndex] = {
                     ...studyNotes[globalIndex],
                     ...updates,
                     timestamp: studyNotes[globalIndex].timestamp // Keep original timestamp
                 };
-                
+
                 await chrome.storage.local.set({ studyNotes });
                 this.loadStudyNotes();
                 this.showNotification('Note updated successfully', 'success');
@@ -1261,7 +1296,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
         // Create dialog overlay
         const overlay = document.createElement('div');
         overlay.className = 'papermind-dialog-overlay';
-        
+
         const dialog = document.createElement('div');
         dialog.className = 'papermind-add-note-dialog';
         dialog.innerHTML = `
@@ -1288,13 +1323,13 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 <button class="dialog-btn dialog-save">Save Note</button>
             </div>
         `;
-        
+
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
-        
+
         // Focus on title input
         setTimeout(() => dialog.querySelector('#note-title').focus(), 100);
-        
+
         // Close handlers
         const closeDialog = () => overlay.remove();
         dialog.querySelector('.dialog-close').addEventListener('click', closeDialog);
@@ -1302,18 +1337,18 @@ Provide a focused answer to the follow-up question, building on the previous exp
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) closeDialog();
         });
-        
+
         // Save handler
         dialog.querySelector('.dialog-save').addEventListener('click', async () => {
             const title = dialog.querySelector('#note-title').value.trim();
             const reference = dialog.querySelector('#note-reference').value.trim();
             const content = dialog.querySelector('#note-content').value.trim();
-            
+
             if (!title || !content) {
                 this.showNotification('Please fill in title and content', 'error');
                 return;
             }
-            
+
             const note = {
                 prompt: title,
                 selectedText: reference || 'Manual note',
@@ -1324,7 +1359,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 timestamp: Date.now(),
                 isManual: true
             };
-            
+
             await this.saveToStudyNotes(note);
             closeDialog();
             this.showNotification('Note added successfully!', 'success');

@@ -24,7 +24,7 @@ body {
 
 /* Header */
 .popup-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
     padding: 16px 20px;
     display: flex;
@@ -60,6 +60,7 @@ body {
     height: 8px;
     border-radius: 50%;
     background: #4ade80;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
     animation: pulse 2s infinite;
 }
 
@@ -85,16 +86,16 @@ body {
 }
 
 .current-paper {
-    background: #f8f9fa;
+    background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
     border-radius: 8px;
     padding: 16px;
     margin-bottom: 20px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #4FC3F7;
 }
 
 .paper-info h3 {
     font-size: 14px;
-    color: #666;
+    color: #1976D2;
     margin-bottom: 8px;
     font-weight: 600;
 }
@@ -135,12 +136,14 @@ body {
 }
 
 .action-btn.primary {
-    background: #667eea;
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
 }
 
 .action-btn.primary:hover:not(:disabled) {
-    background: #5a6fd8;
+    background: linear-gradient(135deg, #29B6F6 0%, #1E88E5 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
 }
 
 .action-btn.secondary {
@@ -165,7 +168,7 @@ body {
 /* Recent Papers */
 .recent-papers h3 {
     font-size: 14px;
-    color: #666;
+    color: #1976D2;
     margin-bottom: 12px;
     font-weight: 600;
 }
@@ -186,8 +189,8 @@ body {
 }
 
 .paper-item:hover {
-    background: #f8f9fa;
-    border-color: #667eea;
+    background: #E3F2FD;
+    border-color: #4FC3F7;
 }
 
 .paper-item-title {
@@ -214,10 +217,11 @@ body {
 
 /* AI Status */
 .ai-status {
-    background: #f8f9fa;
-    border-radius: 6px;
+    background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+    border-radius: 8px;
     padding: 12px;
     margin-top: 16px;
+    border: 1px solid #90CAF9;
 }
 
 .status-item {
@@ -233,12 +237,12 @@ body {
 }
 
 .status-label {
-    color: #666;
+    color: #1976D2;
     font-weight: 500;
 }
 
 .status-value {
-    color: #333;
+    color: #0D47A1;
     font-weight: 600;
 }
 
@@ -266,7 +270,7 @@ body {
 }
 
 .footer-links a:hover {
-    color: #667eea;
+    color: #4FC3F7;
 }
 
 .version {
@@ -304,8 +308,10 @@ body {
 }
 
 .modal-header {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
     padding: 20px;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: none;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -315,13 +321,14 @@ body {
     font-size: 18px;
     font-weight: 600;
     margin: 0;
+    color: white;
 }
 
 .close-btn {
-    background: none;
+    background: rgba(255, 255, 255, 0.2);
     border: none;
     font-size: 24px;
-    color: #666;
+    color: white;
     cursor: pointer;
     padding: 0;
     width: 30px;
@@ -334,7 +341,7 @@ body {
 }
 
 .close-btn:hover {
-    background-color: #f8f9fa;
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
 .modal-body {
@@ -381,8 +388,8 @@ body {
 }
 
 .setting-label input[type="checkbox"]:checked+.checkmark {
-    background: #667eea;
-    border-color: #667eea;
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    border-color: #4FC3F7;
 }
 
 .setting-label input[type="checkbox"]:checked+.checkmark::after {
@@ -416,7 +423,8 @@ body {
 
 .setting-group select:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #4FC3F7;
+    box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
 }
 
 /* Help Section */
@@ -463,12 +471,14 @@ body {
 }
 
 .btn.primary {
-    background: #667eea;
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
 }
 
 .btn.primary:hover {
-    background: #5a6fd8;
+    background: linear-gradient(135deg, #29B6F6 0%, #1E88E5 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
 }
 
 .btn.secondary {

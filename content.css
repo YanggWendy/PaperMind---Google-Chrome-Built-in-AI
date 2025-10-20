@@ -488,13 +488,13 @@ input:checked+.toggle-slider:hover {
 .papermind-search-bar {
     position: absolute;
     z-index: 10002;
-    animation: slideIn 0.2s ease-out;
+    animation: slideInUp 0.3s ease-out;
 }
 
-@keyframes slideIn {
+@keyframes slideInUp {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateY(10px);
     }
 
     to {
@@ -506,16 +506,69 @@ input:checked+.toggle-slider:hover {
 .search-bar-content {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     background: white;
-    border: 2px solid #2196F3;
-    border-radius: 24px;
-    padding: 4px;
-    box-shadow: 0 4px 20px rgba(33, 150, 243, 0.3);
+    border-radius: 28px;
+    padding: 6px;
+    box-shadow: 0 8px 32px rgba(79, 195, 247, 0.4);
+    border: 2px solid transparent;
+    background-image: linear-gradient(white, white),
+        linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
 }
 
 .search-icon-btn {
-    background: #2196F3;
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
+}
+
+.search-icon-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.5);
+}
+
+.search-icon-btn:active {
+    transform: scale(0.95);
+}
+
+.search-icon {
+    font-size: 18px;
+    color: white;
+    pointer-events: none;
+}
+
+.search-input {
+    border: none;
+    outline: none;
+    padding: 10px 14px;
+    font-size: 14px;
+    width: 280px;
+    background: transparent;
+    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.search-input::placeholder {
+    color: #999;
+}
+
+.search-input:focus {
+    color: #000;
+}
+
+.search-submit-btn {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     border: none;
     border-radius: 50%;
     width: 36px;
@@ -524,56 +577,21 @@ input:checked+.toggle-slider:hover {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;
-}
-
-.search-icon-btn:hover {
-    background: #1976D2;
-    transform: scale(1.1);
-}
-
-.search-icon {
-    font-size: 18px;
-    font-weight: 700;
+    transition: all 0.2s ease;
     color: white;
-    pointer-events: none; /* Let clicks pass through to button */
-}
-
-.search-input {
-    border: none;
-    outline: none;
-    padding: 8px 12px;
-    font-size: 14px;
-    width: 280px;
-    background: transparent;
-    color: #333;
-}
-
-.search-input::placeholder {
-    color: #999;
-}
-
-.search-submit-btn {
-    background: #4CAF50;
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: white;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
 }
 
 .search-submit-btn:hover {
-    background: #388E3C;
     transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.5);
+}
+
+.search-submit-btn:active {
+    transform: scale(0.95);
 }
 
 /* ===============================================
@@ -611,6 +629,10 @@ input:checked+.toggle-slider:hover {
     overflow: hidden;
 }
 
+.papermind-knowledge-panel.minimized .knowledge-panel-body {
+    display: none;
+}
+
 .knowledge-panel-header {
     background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
     color: white;
@@ -621,6 +643,11 @@ input:checked+.toggle-slider:hover {
     justify-content: space-between;
     cursor: grab;
     user-select: none;
+    transition: border-radius 0.3s ease;
+}
+
+.papermind-knowledge-panel.minimized .knowledge-panel-header {
+    border-radius: 16px;
 }
 
 .knowledge-panel-header:active {
@@ -630,6 +657,13 @@ input:checked+.toggle-slider:hover {
 .panel-title {
     font-weight: 600;
     font-size: 15px;
+    flex: 1;
+}
+
+.panel-header-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 .panel-minimize,
@@ -645,22 +679,54 @@ input:checked+.toggle-slider:hover {
     align-items: center;
     justify-content: center;
     font-size: 18px;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .panel-minimize:hover,
 .panel-close:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(1.1);
+}
+
+.panel-minimize:active,
+.panel-close:active {
+    transform: scale(0.95);
 }
 
 .knowledge-panel-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 0;
+    transition: opacity 0.3s ease;
+}
+
+.papermind-knowledge-panel.minimized .knowledge-panel-body {
+    opacity: 0;
 }
 
 .panel-content {
     padding: 20px;
+}
+
+/* Smooth scrollbar */
+.knowledge-panel-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.knowledge-panel-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 0 0 16px 0;
+}
+
+.knowledge-panel-body::-webkit-scrollbar-thumb {
+    background: #4FC3F7;
+    border-radius: 4px;
+}
+
+.knowledge-panel-body::-webkit-scrollbar-thumb:hover {
+    background: #29B6F6;
 }
 
 /* Loading State */
@@ -2711,6 +2777,7 @@ body.papermind-enhanced-mode .papermind-original {
         opacity: 0;
         max-height: 0;
     }
+
     to {
         opacity: 1;
         max-height: 1000px;
@@ -2848,6 +2915,7 @@ body.papermind-enhanced-mode .papermind-original {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -2867,6 +2935,7 @@ body.papermind-enhanced-mode .papermind-original {
         transform: translateY(20px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -3233,23 +3302,39 @@ body.papermind-enhanced-mode .papermind-original {
 
     /* Dark mode for search bar */
     .search-bar-content {
-        background: #2d2d2d;
-        border-color: #4FC3F7;
+        background-image: linear-gradient(#2d2d2d, #2d2d2d),
+            linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+        box-shadow: 0 8px 32px rgba(79, 195, 247, 0.3);
     }
 
     .search-input {
-        background: #2d2d2d;
         color: #e0e0e0;
     }
 
     .search-input::placeholder {
-        color: #666;
+        color: #888;
+    }
+
+    .search-input:focus {
+        color: #fff;
     }
 
     /* Dark mode for knowledge panel */
     .papermind-knowledge-panel {
         background: #2d2d2d;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .knowledge-panel-body::-webkit-scrollbar-track {
+        background: #1f1f1f;
+    }
+
+    .knowledge-panel-body::-webkit-scrollbar-thumb {
+        background: #4FC3F7;
+    }
+
+    .knowledge-panel-body::-webkit-scrollbar-thumb:hover {
+        background: #5AB9EA;
     }
 
     .selected-text-preview {

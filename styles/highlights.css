@@ -1,3 +1,473 @@
+/* ===============================================
+   HIGHLIGHT SEARCH BAR STYLES
+   =============================================== */
+
+.papermind-search-bar {
+    position: absolute;
+    z-index: 10002;
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.search-bar-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border-radius: 28px;
+    padding: 6px;
+    box-shadow: 0 8px 32px rgba(79, 195, 247, 0.4);
+    border: 2px solid transparent;
+    background-image: linear-gradient(white, white),
+        linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+}
+
+.search-icon-btn {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.search-icon-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.5);
+}
+
+.search-icon {
+    font-size: 18px;
+}
+
+.search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    background: transparent;
+    min-width: 200px;
+}
+
+.search-input::placeholder {
+    color: #90CAF9;
+}
+
+.search-submit-btn {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.search-submit-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.5);
+}
+
+/* ===============================================
+   KNOWLEDGE PANEL (Side panel for explanations)
+   =============================================== */
+
+.papermind-knowledge-panel {
+    position: fixed;
+    right: 20px;
+    top: 100px;
+    width: 400px;
+    max-height: calc(100vh - 140px);
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 0.3s ease-out;
+    transition: none;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.knowledge-panel-header {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+    padding: 16px;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+    user-select: none;
+}
+
+.knowledge-panel-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.panel-header-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.knowledge-panel-minimize,
+.knowledge-panel-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: background 0.2s;
+}
+
+.knowledge-panel-minimize:hover,
+.knowledge-panel-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.knowledge-panel-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    transition: max-height 0.3s ease;
+}
+
+.knowledge-panel-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.knowledge-panel-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.knowledge-panel-body::-webkit-scrollbar-thumb {
+    background: #4FC3F7;
+    border-radius: 10px;
+}
+
+.knowledge-panel-body::-webkit-scrollbar-thumb:hover {
+    background: #29B6F6;
+}
+
+.knowledge-panel-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px 20px;
+}
+
+.knowledge-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #4FC3F7;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.knowledge-loading-text {
+    color: #666;
+    font-size: 14px;
+}
+
+.knowledge-panel-result {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.knowledge-question {
+    background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1976D2;
+}
+
+.knowledge-selected-text {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #495057;
+    border-left: 3px solid #4FC3F7;
+}
+
+.knowledge-explanation {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #333;
+    margin-bottom: 16px;
+}
+
+.knowledge-explanation h1,
+.knowledge-explanation h2,
+.knowledge-explanation h3,
+.knowledge-explanation h4 {
+    color: #1976D2;
+    margin-top: 16px;
+    margin-bottom: 8px;
+}
+
+.knowledge-explanation ul,
+.knowledge-explanation ol {
+    margin: 8px 0;
+    padding-left: 24px;
+}
+
+.knowledge-explanation li {
+    margin: 4px 0;
+}
+
+.knowledge-key-points {
+    background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+    padding: 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.key-points-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2E7D32;
+    margin-bottom: 8px;
+}
+
+.key-points-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.key-points-list li {
+    padding: 6px 0;
+    padding-left: 20px;
+    position: relative;
+    font-size: 13px;
+    color: #1B5E20;
+}
+
+.key-points-list li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.knowledge-panel-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.knowledge-action-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.knowledge-followup-btn {
+    background: white;
+    color: #4FC3F7;
+    border: 2px solid #4FC3F7;
+}
+
+.knowledge-followup-btn:hover {
+    background: #4FC3F7;
+    color: white;
+}
+
+.knowledge-save-btn {
+    background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
+    color: white;
+}
+
+.knowledge-save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.knowledge-save-btn.saved {
+    background: #9E9E9E;
+    cursor: default;
+}
+
+.knowledge-panel-error {
+    padding: 20px;
+    text-align: center;
+}
+
+.error-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 14px;
+}
+
+/* Follow-up interface within panel */
+.knowledge-followup-interface {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px solid #E3F2FD;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.followup-interface-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1976D2;
+    margin-bottom: 12px;
+}
+
+.followup-input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.followup-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid #4FC3F7;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.followup-input:focus {
+    outline: none;
+    border-color: #29B6F6;
+}
+
+.followup-submit-btn {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.followup-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
+}
+
+.followup-cancel-btn {
+    background: #f8f9fa;
+    color: #666;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.followup-cancel-btn:hover {
+    background: #e9ecef;
+}
+
+/* ===============================================
+   OLD STYLES (Legacy - may be unused)
+   =============================================== */
+
+.prompt-close {
     transition: background 0.2s;
 }
 
@@ -142,7 +612,7 @@
 }
 
 /* ===============================================
-   NEW: Explanation Popup (Near Text)
+   Explanation Popup (Near Text)
    =============================================== */
 
 .papermind-explanation-popup {
@@ -186,16 +656,6 @@
     border-top: 3px solid #667eea;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
 }
 
 .explanation-header {
@@ -289,7 +749,7 @@
 }
 
 /* ===============================================
-   NEW: Follow-up Dialog
+   Follow-up Dialog
    =============================================== */
 
 .papermind-followup-dialog {
@@ -378,7 +838,7 @@
 }
 
 /* ===============================================
-   NEW: Toggle View Section
+   Toggle View Section
    =============================================== */
 
 .toggle-view-section {
@@ -434,7 +894,7 @@
 }
 
 /* ===============================================
-   NEW: Study Notes Section
+   Study Notes Section
    =============================================== */
 
 .study-notes-section {
@@ -574,3 +1034,4 @@
 
 .notes-list::-webkit-scrollbar-thumb:hover {
     background: #5568d3;
+}
