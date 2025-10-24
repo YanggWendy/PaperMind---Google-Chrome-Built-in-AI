@@ -195,6 +195,14 @@ input:checked+.toggle-slider:hover {
     padding: 16px;
 }
 
+/* Action Buttons Group */
+.action-buttons-group {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 8px;
+}
+
 /* Action Button */
 .action-button {
     width: 100%;
@@ -220,6 +228,15 @@ input:checked+.toggle-slider:hover {
 
 .action-button.hidden {
     display: none;
+}
+
+/* Summary Button with different color */
+.action-button.summary-button {
+    background: linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%);
+}
+
+.action-button.summary-button:hover {
+    box-shadow: 0 4px 12px rgba(167, 139, 250, 0.4);
 }
 
 .button-icon {
