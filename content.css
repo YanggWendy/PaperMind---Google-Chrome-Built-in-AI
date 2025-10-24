@@ -1374,6 +1374,71 @@ body.papermind-enhanced-mode .papermind-original {
     display: none;
 }
 
+/* Per-Section Toggle Button */
+.papermind-section-toggle {
+    background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
+    transition: all 0.2s ease;
+    opacity: 0.85;
+    flex-shrink: 0;
+    vertical-align: middle;
+    margin-left: 8px;
+    white-space: nowrap;
+}
+
+.papermind-section-toggle:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
+}
+
+.papermind-section-toggle:active {
+    transform: translateY(0);
+}
+
+.papermind-section-toggle .toggle-icon {
+    font-size: 14px;
+    line-height: 1;
+    display: inline-block;
+}
+
+.papermind-section-toggle .toggle-text {
+    font-size: 12px;
+    line-height: 1;
+}
+
+/* Title wrapper for section headers */
+.papermind-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0 !important;
+    flex-wrap: nowrap;
+}
+
+.papermind-title-wrapper h1,
+.papermind-title-wrapper h2,
+.papermind-title-wrapper h3 {
+    margin: 0;
+    padding-right: 0;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+/* Original header styling */
+.papermind-original-header {
+    margin-bottom: 12px;
+}
+
 /* Notification Styles */
 .papermind-notification {
     position: fixed;
@@ -1482,6 +1547,16 @@ body.papermind-enhanced-mode .papermind-original {
     .papermind-expandable-panel {
         background: #2d2d2d;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Section Toggle Button Dark Mode */
+    .papermind-section-toggle {
+        background: linear-gradient(135deg, #5AB9EA 0%, #4FC3F7 100%);
+        box-shadow: 0 2px 8px rgba(90, 185, 234, 0.4);
+    }
+
+    .papermind-section-toggle:hover {
+        box-shadow: 0 4px 12px rgba(90, 185, 234, 0.5);
     }
 
     .progress-section {

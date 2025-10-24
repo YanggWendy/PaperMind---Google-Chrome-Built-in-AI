@@ -99,6 +99,11 @@ Literature digressions, codebase history, author credits, generic training lore,
   </details>
 </section>
 
+**Important formatting notes:**
+- Keep the h3 title text clean and concise - do NOT add extra whitespace or line breaks inside the title
+- The title should be a single line of text without leading or trailing spaces
+- Example: <h3 id="S2-h">2 Background</h3> NOT <h3 id="S2-h">  2 Background  </h3>
+
 ## Failure Handling
 - If content is thin or transitional, still produce 8 bullets by expanding definitions, constraints, and explicitly stating “Information gaps” where details are missing, **but do not invent**.
 

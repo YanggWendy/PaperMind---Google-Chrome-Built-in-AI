@@ -184,9 +184,9 @@ class PaperMind {
 
             hoverTimeout = setTimeout(() => {
                 if (!isPinned && !this.isAnalyzing) {
-                    panel.classList.add('hidden');
-                    button.classList.remove('hidden');
-                }
+                panel.classList.add('hidden');
+                button.classList.remove('hidden');
+            }
             }, 50);
         });
 
@@ -257,8 +257,8 @@ class PaperMind {
 
             initialX = e.clientX - xOffset;
             initialY = e.clientY - yOffset;
-            isDragging = true;
-            element.style.transition = 'none';
+                isDragging = true;
+                element.style.transition = 'none';
         }
 
         function drag(e) {
@@ -779,8 +779,8 @@ Format as structured sections with clear headings.`;
                 <div class="knowledge-panel-header">
                     <span class="panel-title">🔍 Knowledge Assistant</span>
                     <div class="panel-header-buttons">
-                        <button class="panel-minimize" title="Minimize">−</button>
-                        <button class="panel-close" title="Close">×</button>
+                    <button class="panel-minimize" title="Minimize">−</button>
+                    <button class="panel-close" title="Close">×</button>
                     </div>
                 </div>
                 <div class="knowledge-panel-body">
@@ -940,8 +940,8 @@ Format as structured sections with clear headings.`;
 
         document.addEventListener('mouseup', () => {
             if (isDragging) {
-                isDragging = false;
-                header.style.cursor = 'grab';
+            isDragging = false;
+            header.style.cursor = 'grab';
                 panel.style.transition = ''; // Re-enable animations
             }
         });
@@ -1080,14 +1080,14 @@ Provide a focused answer to the follow-up question, building on the previous exp
                             <div class="note-actions">
                                 <button class="note-edit" data-index="${index}" title="Edit">✎</button>
                                 <button class="note-delete" data-index="${index}" title="Delete">×</button>
-                            </div>
+                        </div>
                         </div>
                         
                         <!-- Preview Mode (Collapsed) -->
                         <div class="note-preview">
-                            <div class="note-text">
+                        <div class="note-text">
                                 <strong>Selected:</strong> "${note.selectedText.substring(0, 60)}${isLongText ? '...' : ''}"
-                            </div>
+                        </div>
                             ${hasKeyPoints
                         ? `<div class="note-key-points-preview">
                                     <strong>Key Points:</strong> ${note.keyPoints.length} points
@@ -1229,13 +1229,13 @@ Provide a focused answer to the follow-up question, building on the previous exp
         });
 
         // Delete button
-        notesList.querySelectorAll('.note-delete').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            notesList.querySelectorAll('.note-delete').forEach(btn => {
+                btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const index = parseInt(e.target.dataset.index);
-                this.deleteStudyNote(index);
+                    const index = parseInt(e.target.dataset.index);
+                    this.deleteStudyNote(index);
+                });
             });
-        });
     }
 
     async updateStudyNote(index, updates) {
@@ -1733,8 +1733,86 @@ Provide a focused answer to the follow-up question, building on the previous exp
             section.appendChild(originalWrapper);
             section.appendChild(enhancedWrapper);
 
+            // Create toggle button for this section (after adding content)
+            const toggleButton = document.createElement('button');
+            toggleButton.className = 'papermind-section-toggle';
+            toggleButton.innerHTML = `
+                <span class="toggle-icon">⟳</span>
+                <span class="toggle-text">Original</span>
+            `;
+            toggleButton.title = 'Toggle between enhanced and original view';
+            toggleButton.setAttribute('data-section-index', i);
+            
+            // Add toggle functionality
+            toggleButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleSectionView(section, toggleButton);
+            });
+
+            // Find titles in both enhanced and original content to insert button next to them
+            const enhancedHeader = enhancedWrapper.querySelector('header');
+            const enhancedTitle = enhancedHeader ? enhancedHeader.querySelector('h3, h2, h1') : null;
+            const originalTitle = originalWrapper.querySelector('h2, h3, h1');
+            
+            if (enhancedTitle && enhancedHeader) {
+                // Create a wrapper div for title and button
+                const titleWrapper = document.createElement('div');
+                titleWrapper.className = 'papermind-title-wrapper';
+                titleWrapper.style.display = 'flex';
+                titleWrapper.style.alignItems = 'center';
+                titleWrapper.style.gap = '8px';
+                titleWrapper.style.flexWrap = 'nowrap';
+                
+                // Clone the button for enhanced view
+                const enhancedButton = toggleButton.cloneNode(true);
+                enhancedButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleSectionView(section, enhancedButton);
+                });
+                
+                // Replace header with wrapped version
+                enhancedHeader.innerHTML = '';
+                titleWrapper.appendChild(enhancedTitle);
+                titleWrapper.appendChild(enhancedButton);
+                enhancedHeader.appendChild(titleWrapper);
+            }
+            
+            if (originalTitle) {
+                // Find or create header for original content
+                let originalHeader = originalTitle.closest('header');
+                if (!originalHeader) {
+                    // If no header, wrap the title
+                    originalHeader = document.createElement('div');
+                    originalHeader.className = 'papermind-original-header';
+                    originalTitle.parentNode.insertBefore(originalHeader, originalTitle);
+                    originalHeader.appendChild(originalTitle);
+                }
+                
+                // Create a wrapper div for title and button
+                const titleWrapper = document.createElement('div');
+                titleWrapper.className = 'papermind-title-wrapper';
+                titleWrapper.style.display = 'flex';
+                titleWrapper.style.alignItems = 'center';
+                titleWrapper.style.gap = '8px';
+                titleWrapper.style.flexWrap = 'nowrap';
+                
+                // Clone the button for original view
+                const originalButton = toggleButton.cloneNode(true);
+                originalButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleSectionView(section, originalButton);
+                });
+                
+                // Replace header with wrapped version
+                originalHeader.innerHTML = '';
+                titleWrapper.appendChild(originalTitle);
+                titleWrapper.appendChild(originalButton);
+                originalHeader.appendChild(titleWrapper);
+            }
+
             // Mark the section as enhanced
             section.setAttribute('data-papermind-enhanced', 'true');
+            section.setAttribute('data-view-mode', 'enhanced');
         }
 
         // Mark article as enhanced
@@ -1742,6 +1820,45 @@ Provide a focused answer to the follow-up question, building on the previous exp
         article.classList.remove('papermind-original');
 
         console.log('PaperMind: Enhanced paper rendered successfully');
+    }
+
+    toggleSectionView(section, button) {
+        const currentMode = section.getAttribute('data-view-mode') || 'enhanced';
+        const originalContent = section.querySelector('.papermind-original-content');
+        const enhancedContent = section.querySelector('.papermind-enhanced-content');
+        
+        // Find all toggle buttons in this section (one in enhanced, one in original)
+        const allButtons = section.querySelectorAll('.papermind-section-toggle');
+
+        if (currentMode === 'enhanced') {
+            // Switch to original
+            if (originalContent) originalContent.style.display = 'block';
+            if (enhancedContent) enhancedContent.style.display = 'none';
+            section.setAttribute('data-view-mode', 'original');
+            
+            // Update all buttons in this section
+            allButtons.forEach(btn => {
+                const toggleIcon = btn.querySelector('.toggle-icon');
+                const toggleText = btn.querySelector('.toggle-text');
+                if (toggleIcon) toggleIcon.textContent = '⟲';
+                if (toggleText) toggleText.textContent = 'Enhanced';
+                btn.title = 'Switch to enhanced view';
+            });
+        } else {
+            // Switch to enhanced
+            if (originalContent) originalContent.style.display = 'none';
+            if (enhancedContent) enhancedContent.style.display = 'block';
+            section.setAttribute('data-view-mode', 'enhanced');
+            
+            // Update all buttons in this section
+            allButtons.forEach(btn => {
+                const toggleIcon = btn.querySelector('.toggle-icon');
+                const toggleText = btn.querySelector('.toggle-text');
+                if (toggleIcon) toggleIcon.textContent = '⟳';
+                if (toggleText) toggleText.textContent = 'Original';
+                btn.title = 'Switch to original view';
+            });
+        }
     }
 
     escapeHtml(text) {

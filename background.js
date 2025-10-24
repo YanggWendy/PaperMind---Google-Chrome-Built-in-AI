@@ -10,8 +10,8 @@ class PaperMindAI {
         this.cache = new Map();
         // Separate main sessions for different tasks
         this.sessions = {
-            analysis: null,  // For paper analysis with HTML output instructions
-            question: null   // For Q&A with conversational instructions
+            analysis: null,    // For paper analysis with HTML output instructions
+            question: null     // For Q&A with conversational instructions
         };
         this.sessionTimeout = null;
         this.SESSION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
