@@ -1355,10 +1355,6 @@ input:checked+.toggle-slider:hover {
     }
 }
 
-/* Legacy toggle icon class (kept for compatibility) */
-.toggle-icon {
-    font-size: 16px;
-}
 
 /* View State Styles */
 .papermind-original {
@@ -1386,7 +1382,6 @@ body.papermind-enhanced-mode .papermind-original {
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
     box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
     transition: all 0.2s ease;
     opacity: 0.85;
@@ -1404,17 +1399,6 @@ body.papermind-enhanced-mode .papermind-original {
 
 .papermind-section-toggle:active {
     transform: translateY(0);
-}
-
-.papermind-section-toggle .toggle-icon {
-    font-size: 14px;
-    line-height: 1;
-    display: inline-block;
-}
-
-.papermind-section-toggle .toggle-text {
-    font-size: 12px;
-    line-height: 1;
 }
 
 /* Title wrapper for section headers */

@@ -90,10 +90,16 @@ class PaperMind {
                 </div>
             </div>
             <div class="panel-content">
-                <button class="action-button analyze-button" id="analyze-button">
-                    <span class="button-icon">▶</span>
-                    <span>Analyze Paper</span>
-                </button>
+                <div class="action-buttons-group">
+                    <button class="action-button analyze-button" id="analyze-button">
+                        <span class="button-icon">▶</span>
+                        <span>Analyze Paper</span>
+                    </button>
+                    <button class="action-button summary-button" id="summary-button">
+                        <span class="button-icon">📄</span>
+                        <span>Generate Summary</span>
+                    </button>
+                </div>
                 <div class="progress-section hidden" id="progress-section">
                     <div class="progress-status">
                         <p id="progress-message">Ready to analyze</p>
@@ -194,6 +200,14 @@ class PaperMind {
         const analyzeButton = panel.querySelector('#analyze-button');
         analyzeButton.addEventListener('click', () => {
             this.analyzePaper();
+        });
+
+        // Summary button click
+        const summaryButton = panel.querySelector('#summary-button');
+        summaryButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.generateSummary();
         });
 
         // Close button - unpins and closes panel
@@ -1572,6 +1586,288 @@ Provide a focused answer to the follow-up question, building on the previous exp
         }
     }
 
+    async generateSummary() {
+        // Double-check we have paper data
+        if (!this.paperData) {
+            console.warn('⚠️ PaperMind: Paper data not found, extracting now...');
+            this.extractPaperContent();
+        }
+
+        if (!this.paperData) {
+            this.showNotification('Unable to extract paper content', 'error');
+            return;
+        }
+
+        // Show loading state in a modal
+        this.showSummaryModal('loading');
+
+        try {
+            // Combine all paper text for summarization
+            let fullText = '';
+            
+            // Add title
+            if (this.paperData.title) {
+                fullText += `Title: ${this.paperData.title}\n\n`;
+            }
+            
+            // Add abstract
+            if (this.paperData.abstract && this.paperData.abstract.text) {
+                fullText += `Abstract: ${this.paperData.abstract.text}\n\n`;
+            }
+            
+            // Add sections
+            if (this.paperData.sections && this.paperData.sections.length > 0) {
+                this.paperData.sections.forEach(section => {
+                    if (section.title && section.text) {
+                        fullText += `${section.title}\n${section.text}\n\n`;
+                    }
+                });
+            }
+
+            console.log(`PaperMind: Generating summary for ${fullText.length} characters of text`);
+
+            // Call the background script to use the Summarizer API
+            const response = await chrome.runtime.sendMessage({
+                action: 'generatePaperSummary',
+                text: fullText,
+                paperData: this.paperData
+            });
+
+            console.log('PaperMind: Summary response:', response);
+
+            if (response && response.summary) {
+                // Ensure summary is a string
+                const summaryText = typeof response.summary === 'string' 
+                    ? response.summary 
+                    : JSON.stringify(response.summary, null, 2);
+
+                console.log('PaperMind: Summary text type:', typeof summaryText, 'Content:', summaryText.substring(0, 200));
+
+                this.showSummaryModal('result', {
+                    summary: summaryText,
+                    summaryType: response.type || 'tl;dr',
+                    paperTitle: this.paperData.title
+                });
+            } else if (response && response.error) {
+                this.showSummaryModal('error', { message: response.error });
+            } else {
+                this.showSummaryModal('error', { message: 'Failed to generate summary' });
+            }
+
+        } catch (error) {
+            console.error('PaperMind: Error generating summary:', error);
+            this.showSummaryModal('error', { message: error.message });
+        }
+    }
+
+    showSummaryModal(state, data = {}) {
+        // Remove existing modal if any
+        const existingModal = document.querySelector('.papermind-ai-response-summary');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Create modal overlay using AI response style
+        const overlay = document.createElement('div');
+        overlay.className = 'papermind-ai-response papermind-ai-response-summary';
+
+        if (state === 'loading') {
+            overlay.innerHTML = `
+                <div class="response-content">
+                    <h4>Generating Summary</h4>
+                    <div class="summary-loading" style="text-align: center; padding: 20px 0;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin-top: 16px;">Using Chrome's built-in AI Summarizer...</p>
+                        <small style="color: #999;">This may take a moment</small>
+                    </div>
+                    <button class="close-response">Cancel</button>
+                </div>
+            `;
+        } else if (state === 'result') {
+            const { summary, summaryType, paperTitle } = data;
+            overlay.innerHTML = `
+                <div class="response-content" style="max-width: 600px;">
+                    <h4>Paper Summary</h4>
+                    <div style="margin-bottom: 16px;">
+                        <strong style="font-size: 14px; color: #333;">${paperTitle || 'Research Paper'}</strong>
+                        <span class="summary-badge" style="margin-left: 8px; background: #EDE9FE; color: #6D28D9; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">${summaryType}</span>
+                    </div>
+                    <div style="line-height: 1.6; color: #555; max-height: 50vh; overflow-y: auto; padding-right: 8px;">
+                        ${this.formatSummaryText(summary)}
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap;">
+                        <button class="close-response" id="regenerate-summary-btn">Regenerate</button>
+                        <button class="close-response" id="copy-summary-btn">Copy</button>
+                        <button class="close-response" id="save-summary-btn">Save to Notes</button>
+                        <button class="close-response">Close</button>
+                    </div>
+                    <small style="display: block; text-align: center; color: #999; margin-top: 16px; font-size: 11px;">Generated by Chrome Built-in AI Summarizer</small>
+                </div>
+            `;
+        } else if (state === 'error') {
+            overlay.innerHTML = `
+                <div class="response-content">
+                    <h4>Summary Error</h4>
+                    <p style="color: #dc3545;">${data.message || 'Failed to generate summary'}</p>
+                    <small style="color: #999;">Make sure Chrome's built-in AI is enabled and available.</small>
+                    <div style="margin-top: 20px;">
+                        <button class="close-response" id="retry-summary-btn">Try Again</button>
+                        <button class="close-response">Close</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        document.body.appendChild(overlay);
+        
+        // Make the panel draggable
+        this.makePanelDraggable(overlay);
+
+        // Add event listeners for close buttons
+        const closeButtons = overlay.querySelectorAll('.close-response');
+        closeButtons.forEach(btn => {
+            if (!btn.id) {
+                btn.addEventListener('click', () => overlay.remove());
+            }
+        });
+
+        // Action buttons
+        if (state === 'result') {
+            const copyBtn = overlay.querySelector('#copy-summary-btn');
+            const saveBtn = overlay.querySelector('#save-summary-btn');
+            const regenerateBtn = overlay.querySelector('#regenerate-summary-btn');
+
+            if (copyBtn) {
+                copyBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(data.summary).then(() => {
+                        this.showNotification('Summary copied to clipboard!', 'success');
+                    }).catch(err => {
+                        console.error('Failed to copy:', err);
+                        this.showNotification('Failed to copy', 'error');
+                    });
+                });
+            }
+
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => {
+                    this.saveToStudyNotes({
+                        prompt: 'AI-Generated Summary',
+                        selectedText: this.paperData.title || 'Paper Summary',
+                        explanation: data.summary,
+                        keyPoints: [],
+                        paperUrl: window.location.href,
+                        paperTitle: this.paperData.title || document.title,
+                        timestamp: Date.now(),
+                        isManual: true
+                    });
+                    this.showNotification('Summary saved to notes!', 'success');
+                    overlay.remove();
+                });
+            }
+
+            if (regenerateBtn) {
+                regenerateBtn.addEventListener('click', () => {
+                    overlay.remove();
+                    this.generateSummary();
+                });
+            }
+        }
+
+        if (state === 'error') {
+            const retryBtn = overlay.querySelector('#retry-summary-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => {
+                    overlay.remove();
+                    this.generateSummary();
+                });
+            }
+        }
+    }
+
+    makePanelDraggable(panel) {
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        // Get the initial position (centered)
+        const rect = panel.getBoundingClientRect();
+        xOffset = rect.left + rect.width / 2 - window.innerWidth / 2;
+        yOffset = rect.top + rect.height / 2 - window.innerHeight / 2;
+
+        // Apply initial transform
+        panel.style.left = '50%';
+        panel.style.top = '50%';
+        panel.style.transform = `translate(-50%, -50%) translate(${xOffset}px, ${yOffset}px)`;
+
+        // Make the header area draggable
+        const responseContent = panel.querySelector('.response-content');
+        const header = responseContent ? responseContent.querySelector('h4') : null;
+        
+        if (header) {
+            header.style.cursor = 'move';
+            header.style.userSelect = 'none';
+            
+            header.addEventListener('mousedown', dragStart);
+        }
+
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', dragEnd);
+
+        function dragStart(e) {
+            if (e.button !== 0) return;
+            
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+            isDragging = true;
+            panel.style.transition = 'none';
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                panel.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`;
+            }
+        }
+
+        function dragEnd(e) {
+            if (isDragging) {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+                panel.style.transition = '';
+            }
+        }
+    }
+
+    formatSummaryText(text) {
+        if (!text) return '<p>No summary available</p>';
+
+        // Ensure text is a string
+        const textStr = typeof text === 'string' ? text : String(text);
+
+        // Convert newlines to paragraphs
+        const paragraphs = textStr.split('\n').filter(p => p.trim().length > 0);
+        
+        return paragraphs.map(para => {
+            // Check if it's a bullet point or numbered list
+            if (para.trim().match(/^[\-\*•]\s+/) || para.trim().match(/^\d+\.\s+/)) {
+                return `<li>${para.trim().replace(/^[\-\*•\d\.]\s+/, '')}</li>`;
+            }
+            return `<p>${para.trim()}</p>`;
+        }).join('');
+    }
+
     async analyzePaper() {
         // Double-check we have paper data (should already be extracted in init)
         if (!this.paperData) {
@@ -1736,10 +2032,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
             // Create toggle button for this section (after adding content)
             const toggleButton = document.createElement('button');
             toggleButton.className = 'papermind-section-toggle';
-            toggleButton.innerHTML = `
-                <span class="toggle-icon">⟳</span>
-                <span class="toggle-text">Original</span>
-            `;
+            toggleButton.textContent = 'Original';
             toggleButton.title = 'Toggle between enhanced and original view';
             toggleButton.setAttribute('data-section-index', i);
             
@@ -1838,10 +2131,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
             
             // Update all buttons in this section
             allButtons.forEach(btn => {
-                const toggleIcon = btn.querySelector('.toggle-icon');
-                const toggleText = btn.querySelector('.toggle-text');
-                if (toggleIcon) toggleIcon.textContent = '⟲';
-                if (toggleText) toggleText.textContent = 'Enhanced';
+                btn.textContent = 'Enhanced';
                 btn.title = 'Switch to enhanced view';
             });
         } else {
@@ -1852,10 +2142,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
             
             // Update all buttons in this section
             allButtons.forEach(btn => {
-                const toggleIcon = btn.querySelector('.toggle-icon');
-                const toggleText = btn.querySelector('.toggle-text');
-                if (toggleIcon) toggleIcon.textContent = '⟳';
-                if (toggleText) toggleText.textContent = 'Original';
+                btn.textContent = 'Original';
                 btn.title = 'Switch to original view';
             });
         }
@@ -2071,7 +2358,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
         overlay.className = 'papermind-ai-response';
         overlay.innerHTML = `
       <div class="response-content">
-        <h4>🤖 AI Response</h4>
+        <h4>AI Response</h4>
         <p>${response}</p>
         <button class="close-response">Close</button>
       </div>

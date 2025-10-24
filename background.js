@@ -330,6 +330,11 @@ class PaperMindAI {
                     sendResponse({ diagram });
                     break;
 
+                case 'generatePaperSummary':
+                    const summaryResult = await this.generatePaperSummary(request.text, request.paperData);
+                    sendResponse(summaryResult);
+                    break;
+
                 default:
                     sendResponse({ error: 'Unknown action' });
             }
@@ -599,6 +604,72 @@ class PaperMindAI {
         } catch (error) {
             console.error('Error generating diagram:', error);
             return null;
+        }
+    }
+
+    async generatePaperSummary(text, paperData) {
+        try {
+            console.log('PaperMind: Generating paper summary using Chrome Summarizer API...');
+            console.log('PaperMind: Text length:', text?.length, 'Paper title:', paperData?.title);
+            
+            // Try using the Summarizer API first
+            const summary = await this.summarizeWithChromeAI(text, {
+                type: "tl;dr",
+                format: "markdown",
+                length: "medium"
+            });
+
+            if (summary) {
+                console.log('PaperMind: Summary generated successfully using Summarizer API');
+                console.log('PaperMind: Summary type:', typeof summary, 'Length:', summary?.length);
+                return {
+                    summary: summary,
+                    type: 'tl;dr',
+                    source: 'Chrome Summarizer API'
+                };
+            }
+
+            // Fallback to language model if Summarizer API is not available
+            console.log('PaperMind: Summarizer API not available, using language model fallback...');
+            const fallbackSummary = await this.generateFallbackSummaryText(text, paperData);
+            console.log('PaperMind: Fallback summary type:', typeof fallbackSummary, 'Content:', fallbackSummary?.substring(0, 100));
+            return {
+                summary: fallbackSummary,
+                type: 'AI-Generated',
+                source: 'Language Model'
+            };
+
+        } catch (error) {
+            console.error('PaperMind: Error generating paper summary:', error);
+            return {
+                error: error.message || 'Failed to generate summary',
+                summary: null
+            };
+        }
+    }
+
+    async generateFallbackSummaryText(text, paperData) {
+        try {
+            // Use the language model as fallback
+            const summaryPrompt = `Please provide a comprehensive summary of the following research paper. Focus on:
+1. Main objective and research question
+2. Key methodology
+3. Main findings
+4. Significance and implications
+
+Paper content:
+${text.substring(0, 10000)}
+
+Provide a clear, concise summary in 3-5 paragraphs.`;
+
+            const summary = await this.callPromptAPI(summaryPrompt, 'question');
+            return summary;
+        } catch (error) {
+            console.error('Error in fallback summary:', error);
+            // Return a basic summary if all else fails
+            const title = paperData?.title || 'Research Paper';
+            const abstract = paperData?.abstract?.text || 'No abstract available.';
+            return `This paper titled "${title}" presents research findings.\n\n${abstract.substring(0, 500)}${abstract.length > 500 ? '...' : ''}`;
         }
     }
 
