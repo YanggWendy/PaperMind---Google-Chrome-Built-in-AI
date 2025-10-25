@@ -1768,7 +1768,8 @@ body.papermind-enhanced-mode .papermind-original {
     margin-bottom: 20px;
     padding-bottom: 12px;
     border-bottom: 2px solid #4FC3F7;
-    background: transparent; /* Ensure no background color */
+    background: transparent;
+    /* Ensure no background color */
 }
 
 .paper-chunk header h3 {
@@ -1776,7 +1777,8 @@ body.papermind-enhanced-mode .papermind-original {
     font-size: 24px;
     font-weight: 700;
     color: #1a1a1a;
-    background: transparent; /* Ensure no background color */
+    background: transparent;
+    /* Ensure no background color */
 }
 
 /* Essentials Section */
@@ -2837,33 +2839,32 @@ pre.math {
     justify-content: center;
     border-radius: 50%;
     transition: all 0.2s;
-    font-size: 16px;
     padding: 0;
-}
-
-.note-edit svg {
-    width: 16px;
-    height: 16px;
 }
 
 .note-edit {
     color: #4FC3F7;
+    background: rgba(79, 195, 247, 0.12);
+    font-size: 14px;
 }
 
 .note-edit:hover {
-    background: rgba(79, 195, 247, 0.1);
+    background: rgba(79, 195, 247, 0.25);
     transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
 }
 
 .note-delete {
-    color: #dc3545;
-    font-size: 22px;
+    color: #4FC3F7;
+    font-size: 20px;
     line-height: 1;
+    background: rgba(79, 195, 247, 0.12);
 }
 
 .note-delete:hover {
-    background: rgba(220, 53, 69, 0.1);
+    background: rgba(79, 195, 247, 0.25);
     transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
 }
 
 .note-text {

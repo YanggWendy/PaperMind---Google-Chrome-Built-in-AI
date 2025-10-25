@@ -1046,16 +1046,17 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
     async saveToStudyNotes(note) {
         try {
+            console.log('💾 Saving note:', note);
             const result = await chrome.storage.local.get(['studyNotes']);
             const studyNotes = result.studyNotes || [];
             studyNotes.push(note);
             await chrome.storage.local.set({ studyNotes });
-            console.log('📝 Note saved to study notes');
+            console.log('✅ Note saved. Total notes:', studyNotes.length);
 
             // Update the notes display
-            this.loadStudyNotes();
+            await this.loadStudyNotes();
         } catch (error) {
-            console.error('Error saving study note:', error);
+            console.error('❌ Error saving study note:', error);
         }
     }
 
@@ -1063,9 +1064,13 @@ Provide a focused answer to the follow-up question, building on the previous exp
         try {
             const result = await chrome.storage.local.get(['studyNotes']);
             const studyNotes = result.studyNotes || [];
+            console.log('📋 Loading notes. Total in storage:', studyNotes.length);
 
             const notesList = document.getElementById('notes-list');
-            if (!notesList) return;
+            if (!notesList) {
+                console.warn('⚠️ Notes list element not found');
+                return;
+            }
 
             if (studyNotes.length === 0) {
                 notesList.innerHTML = '<p class="notes-empty">No notes yet. Highlight text and explain it to save notes.</p>';
@@ -1073,9 +1078,16 @@ Provide a focused answer to the follow-up question, building on the previous exp
             }
 
             // Filter notes for current paper
-            const currentPaperNotes = studyNotes.filter(note =>
-                note.paperUrl === window.location.href
-            );
+            const currentUrl = window.location.href;
+            console.log('🔍 Current URL:', currentUrl);
+
+            const currentPaperNotes = studyNotes.filter(note => {
+                const matches = note.paperUrl === currentUrl;
+                console.log(`Note URL: ${note.paperUrl}, Matches: ${matches}`);
+                return matches;
+            });
+
+            console.log('📝 Notes for current paper:', currentPaperNotes.length);
 
             if (currentPaperNotes.length === 0) {
                 notesList.innerHTML = '<p class="notes-empty">No notes for this paper yet.</p>';
@@ -1094,10 +1106,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
                             <span class="note-badge">${note.prompt}</span>
                             <div class="note-actions">
                                 <button class="note-edit" data-index="${index}" title="Edit">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                    </svg>
+                                    ✏️
                                 </button>
                                 <button class="note-delete" data-index="${index}" title="Delete">×</button>
                         </div>
@@ -1142,29 +1151,6 @@ Provide a focused answer to the follow-up question, building on the previous exp
                             ` : ''}
                         </div>
                         
-                        <!-- Edit Mode -->
-                        <div class="note-edit-mode hidden">
-                            <div class="note-edit-field">
-                                <label>Selected Text:</label>
-                                <textarea class="note-edit-selected" rows="3">${note.selectedText}</textarea>
-                            </div>
-                            
-                            <div class="note-edit-field">
-                                <label>Explanation:</label>
-                                <textarea class="note-edit-explanation" rows="6">${note.explanation || ''}</textarea>
-                            </div>
-                            
-                            <div class="note-edit-field">
-                                <label>Key Points (one per line):</label>
-                                <textarea class="note-edit-keypoints" rows="4">${hasKeyPoints ? note.keyPoints.join('\n') : ''}</textarea>
-                            </div>
-                            
-                            <div class="note-edit-actions">
-                                <button class="note-save" data-index="${index}">Save</button>
-                                <button class="note-cancel" data-index="${index}">Cancel</button>
-                            </div>
-                        </div>
-                        
                         <div class="note-footer">
                             <small>${new Date(note.timestamp).toLocaleString()}</small>
                             ${needsExpand ? '<button class="note-expand-toggle">Show more</button>' : ''}
@@ -1202,49 +1188,12 @@ Provide a focused answer to the follow-up question, building on the previous exp
             });
         });
 
-        // Edit button
+        // Edit button - Show edit dialog
         notesList.querySelectorAll('.note-edit').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const noteItem = e.target.closest('.note-item');
-                const preview = noteItem.querySelector('.note-preview');
-                const fullContent = noteItem.querySelector('.note-full-content');
-                const editMode = noteItem.querySelector('.note-edit-mode');
-
-                preview.classList.add('hidden');
-                fullContent.classList.add('hidden');
-                editMode.classList.remove('hidden');
-            });
-        });
-
-        // Save button
-        notesList.querySelectorAll('.note-save').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const index = parseInt(e.target.dataset.index);
-                const noteItem = e.target.closest('.note-item');
-
-                const selectedText = noteItem.querySelector('.note-edit-selected').value;
-                const explanation = noteItem.querySelector('.note-edit-explanation').value;
-                const keyPointsText = noteItem.querySelector('.note-edit-keypoints').value;
-                const keyPoints = keyPointsText.split('\n').filter(p => p.trim()).map(p => p.trim());
-
-                this.updateStudyNote(index, {
-                    selectedText,
-                    explanation,
-                    keyPoints
-                });
-            });
-        });
-
-        // Cancel button
-        notesList.querySelectorAll('.note-cancel').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const noteItem = e.target.closest('.note-item');
-                const preview = noteItem.querySelector('.note-preview');
-                const editMode = noteItem.querySelector('.note-edit-mode');
-
-                editMode.classList.add('hidden');
-                preview.classList.remove('hidden');
+                const index = parseInt(e.target.closest('.note-edit').dataset.index);
+                this.showEditNoteDialog(index, currentPaperNotes);
             });
         });
 
@@ -1383,6 +1332,81 @@ Provide a focused answer to the follow-up question, building on the previous exp
             await this.saveToStudyNotes(note);
             closeDialog();
             this.showNotification('Note added successfully!', 'success');
+        });
+    }
+
+    showEditNoteDialog(noteIndex, currentPaperNotes) {
+        const note = currentPaperNotes[noteIndex];
+        if (!note) {
+            this.showNotification('Note not found', 'error');
+            return;
+        }
+
+        // Create dialog overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'papermind-dialog-overlay';
+
+        const dialog = document.createElement('div');
+        dialog.className = 'papermind-add-note-dialog';
+        dialog.innerHTML = `
+            <div class="dialog-header">
+                <h3>Edit Note</h3>
+                <button class="dialog-close">×</button>
+            </div>
+            <div class="dialog-body">
+                <div class="dialog-field">
+                    <label for="edit-note-title">Title/Type</label>
+                    <input type="text" id="edit-note-title" value="${note.prompt}" placeholder="e.g., Key Insight, Question, Summary..." />
+                </div>
+                <div class="dialog-field">
+                    <label for="edit-note-reference">Reference Text (optional)</label>
+                    <textarea id="edit-note-reference" rows="2" placeholder="Quote or reference from the paper...">${note.selectedText}</textarea>
+                </div>
+                <div class="dialog-field">
+                    <label for="edit-note-content">Note Content</label>
+                    <textarea id="edit-note-content" rows="6" placeholder="Write your notes here...">${note.explanation || ''}</textarea>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button class="dialog-btn dialog-cancel">Cancel</button>
+                <button class="dialog-btn dialog-save">Save Changes</button>
+            </div>
+        `;
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        // Focus on title input
+        setTimeout(() => dialog.querySelector('#edit-note-title').focus(), 100);
+
+        // Close handlers
+        const closeDialog = () => overlay.remove();
+        dialog.querySelector('.dialog-close').addEventListener('click', closeDialog);
+        dialog.querySelector('.dialog-cancel').addEventListener('click', closeDialog);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeDialog();
+        });
+
+        // Save handler
+        dialog.querySelector('.dialog-save').addEventListener('click', async () => {
+            const title = dialog.querySelector('#edit-note-title').value.trim();
+            const reference = dialog.querySelector('#edit-note-reference').value.trim();
+            const content = dialog.querySelector('#edit-note-content').value.trim();
+
+            if (!title || !content) {
+                this.showNotification('Please fill in title and content', 'error');
+                return;
+            }
+
+            // Update the note with new values
+            await this.updateStudyNote(noteIndex, {
+                prompt: title,
+                selectedText: reference || 'Manual note',
+                explanation: content
+            });
+
+            closeDialog();
+            this.showNotification('Note updated successfully!', 'success');
         });
     }
 
