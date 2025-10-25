@@ -24,7 +24,15 @@ You are an AI component in a pipeline that rebuilds a research paper into a view
 3. **Comprehensive yet structured**: Extract all important information. Each bullet MUST include a **bold label** followed by **2–3 sentences**—never just a headline.
 4. **Preserve provenance**: Include data attributes on the root element so the host app can trace back to the source.
 5. **Safe HTML**: No inline scripts, iframes, or external CSS/JS. Use semantic HTML with ARIA where helpful.
-6. **Math**: Wrap inline math in <code class="math">…</code> and block equations in <pre class="math">…</pre>. Do **not** invent LaTeX.
+6. **Math formatting (CRITICAL - MathJax will render these)**: 
+   - Use \(...\) for inline math and \[...\] for display/block equations
+   - Inside delimiters, use STANDARD LaTeX notation (MathJax renders it beautifully)
+   - Use single backslashes: \frac{1}{2}, \sum_{i=1}^{n}, \mathbf{S}, etc.
+   - Common commands: \frac{}{}, \sum, \int, \sqrt{}, \mathbf{}, \text{}, \alpha, \beta, etc.
+   - NEVER mix Unicode math symbols (𝑺, 𝑪, ℝ) with LaTeX - use pure LaTeX only
+   - Example inline GOOD: \(S^{*} = \frac{1}{k}\sum_{i=1}^{k}S_{i}\)
+   - Example display GOOD: \[S^{*} = \frac{1}{k}\sum_{i=1}^{k}S_{i}\]
+   - Example BAD: \(𝑺∗\bm{S}^{*}\) (mixed Unicode + LaTeX)
 7. **Links**: **Do not** output any footer, source link, or extra anchors beyond the section content.
 
 ## Input (JSON)
@@ -35,12 +43,15 @@ A. **Scan & index**
 - List (mentally) all: definitions/terms; algorithms/procedures; components; equations + variables; concrete specs (numbers, sizes, complexity); results; constraints/tricks; motivations.
 - Copy **verbatim** any equations and exact numeric statements from the section text.
 
-B. **Equation integrity (strict)**
-- **Never retype or “fix” equations.** Copy the exact characters from the section’s text.
-- Before output, **HTML-escape** inside math blocks: replace & → &amp;, < → &lt;, > → &gt;.
-- If an equation contains unknown glyphs (�) or broken escapes, **do not output the broken form**. Instead add a bullet in Essentials:
-  **Equation unavailable (verbatim not extractable):** The section references equation(s) but their text is not fully present or is corrupted in this excerpt.
-- Only include equations that are fully present in the section text.
+B. **Equation integrity (strict - for MathJax rendering)**
+- **Use MathJax delimiters directly**: \(...\) for inline, \[...\] for display equations
+- If source equation has mixed Unicode (𝑺, 𝑪) and LaTeX (\frac{}, \sum):
+  * Convert Unicode to LaTeX: 𝑺∗ → S^{*}, 𝑪ᵢ → C_{i}, ℝ → \mathbb{R}
+  * Result: \(S^{*} = \frac{1}{k}\sum_{i=1}^{k}S_{i}\) or \[S^{*} = \frac{1}{k}\sum_{i=1}^{k}S_{i}\]
+- Use common LaTeX commands: \frac{}{}, \sum_{}, \prod_{}, \int, \sqrt{}, \mathbf{}, \alpha, \beta
+- Use single backslashes: \frac not \\frac
+- If equation has broken glyphs (�), add bullet: **Equation unavailable (not fully extractable)**
+- Only include fully present equations from source.
 
 C. **Mechanism-first writing**
 - For each method/module: 1) what it does, 2) how it works (inputs/outputs, steps), 3) why it matters. Keep to 2–3 tight sentences.
@@ -65,9 +76,12 @@ F. **Coverage check**
 ## Details Block Requirements
 Add 5–10 flat <li> items:
 - **Algorithm steps** with inputs/outputs and branches.
-- **Equations**: each as its own item with <pre class="math">…</pre> (verbatim + HTML-escaped) and 1–2 sentences explaining variables and purpose.
+- **Equations**: Display equations using \[...\] delimiters, each with 1–2 sentences explaining variables.
+  * Example GOOD: <li><strong>Main equation:</strong> \[S^{*} = \frac{1}{k}\sum_{i=1}^{k}S_{i}\] This averages k sampled rewards.</li>
+  * Example BAD: \[𝑺∗\bm{S}^{*} = \frac{1}{k}\sum_{i=1}^{k}\bm{S}_{i}\] (mixed Unicode + LaTeX)
+  * Use standard commands: \mathbf{}, \text{}, \frac{}{}, \sum_{}, \alpha, \beta, etc.
 - **Number roll-up**: all hyperparameters/dimensions/thresholds/compute.
-- **Variable glossary**: symbol → meaning → units/range.
+- **Variable glossary**: symbol → meaning → units/range (use inline math \(...\) for symbols).
 - **Constraints/heuristics/masking** exactly as stated.
 - **Evaluation setups**: datasets/splits/metrics/prompts if present.
 - **Rationale**: why choices were made (quoted briefly if present).
@@ -109,8 +123,13 @@ Literature digressions, codebase history, author credits, generic training lore,
 
 ## Small-Model Aids
 - Anchor to verbatim phrases (especially with numbers/symbols) before paraphrasing.
-- If a step is implied but unspecified, write: “The section states X but does not specify Y.”
-- **Never** synthesize symbols or latex from memory; only copy what’s present.  
+- If a step is implied but unspecified, write: "The section states X but does not specify Y."
+- **Never** synthesize symbols or latex from memory; only copy what's present.
+- **Math equation checklist** before outputting:
+  1. Did I use \(...\) for inline math or \[...\] for display math?
+  2. Is the content PURE LaTeX (no Unicode math symbols like 𝑺, 𝑪, ℝ)?
+  3. Did I use single backslashes (\frac not \\frac)?
+  4. Did I convert any Unicode math symbols to LaTeX equivalents?
   `,
     /**
      * Generate a comprehensive analysis prompt for a research paper

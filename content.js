@@ -24,6 +24,9 @@ class PaperMind {
         if (this.isResearchPaper()) {
             console.log('🧠 PaperMind: Research paper detected!');
 
+            // Load MathJax for equation rendering
+            this.loadMathJax();
+
             // Extract paper content immediately (ready for analysis when user clicks)
             this.extractPaperContent();
             console.log('✅ PaperMind: Paper content extracted and ready for analysis');
@@ -32,6 +35,40 @@ class PaperMind {
             this.createFloatingButton();
             this.setupEventListeners();
         }
+    }
+
+    loadMathJax() {
+        // Check if MathJax is already loaded
+        if (window.MathJax) {
+            console.log('PaperMind: MathJax already loaded');
+            return;
+        }
+
+        // Configure MathJax before loading
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                ignoreHtmlClass: 'papermind-original-content'
+            },
+            startup: {
+                ready: () => {
+                    console.log('PaperMind: MathJax loaded and ready');
+                    MathJax.startup.defaultReady();
+                }
+            }
+        };
+
+        // Load MathJax script
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+        script.async = true;
+        document.head.appendChild(script);
     }
 
     isResearchPaper() {
@@ -2118,7 +2155,23 @@ Provide a focused answer to the follow-up question, building on the previous exp
         article.classList.add('papermind-enhanced');
         article.classList.remove('papermind-original');
 
+        // Trigger MathJax to render equations (AI generates \(...\) and \[...\] directly)
+        this.renderMathJax(article);
+
         console.log('PaperMind: Enhanced paper rendered successfully');
+    }
+
+    renderMathJax(container) {
+        // Trigger MathJax typesetting on the container
+        if (window.MathJax && window.MathJax.typesetPromise) {
+            window.MathJax.typesetPromise([container])
+                .then(() => {
+                    console.log('PaperMind: MathJax typesetting complete');
+                })
+                .catch((err) => {
+                    console.error('PaperMind: MathJax typesetting error:', err);
+                });
+        }
     }
 
     toggleSectionView(section, button) {
