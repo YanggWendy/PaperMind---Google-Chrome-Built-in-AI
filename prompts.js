@@ -260,6 +260,20 @@ ${abstract}
 
 Provide a brief overview of the main contribution and key findings.
 `.trim(),
+
+    /**
+     * Generate a translation prompt for highlighted text
+     * @param {string} text - The text to translate
+     * @param {string} targetLanguage - Target language name
+     * @returns {string} Formatted prompt
+     */
+    translateText: (text, targetLanguage) => `
+Translate the following text to ${targetLanguage}:
+
+"${text}"
+
+Provide only the translation, without any additional explanation.
+`.trim(),
 };
 
 // Export for use in service workers (background.js)

@@ -1,8 +1,8 @@
 // PaperMind Background Service Worker
 // Handles AI processing using Chrome's built-in AI APIs
 
-// Import the Chrome AI helper and prompts
-importScripts('chromeAIHelper.js', 'prompts.js');
+// Import the Chrome AI helper, translator helper, and prompts
+importScripts('chromeAIHelper.js', 'translatorHelper.js', 'prompts.js');
 
 class PaperMindAI {
     constructor() {
@@ -333,6 +333,24 @@ class PaperMindAI {
                 case 'generatePaperSummary':
                     const summaryResult = await this.generatePaperSummary(request.text, request.paperData);
                     sendResponse(summaryResult);
+                    break;
+
+                case 'translateText':
+                    const translation = await this.translateText(
+                        request.text,
+                        request.sourceLanguage,
+                        request.targetLanguage
+                    );
+                    sendResponse({ translation });
+                    break;
+
+                case 'translateAnalysis':
+                    const translatedAnalysis = await this.translateAnalysis(
+                        request.htmlContent,
+                        request.sourceLanguage,
+                        request.targetLanguage
+                    );
+                    sendResponse({ translatedAnalysis });
                     break;
 
                 default:
@@ -707,6 +725,161 @@ Provide a clear, concise summary in 3-5 paragraphs.`;
             results: this.extractResults(paperData),
             implications: this.extractImplications(paperData)
         };
+    }
+
+    /**
+     * Translate text from one language to another
+     * @param {string} text - Text to translate
+     * @param {string} sourceLanguage - Source language code (e.g., 'en')
+     * @param {string} targetLanguage - Target language code (e.g., 'es')
+     * @returns {Promise<string>} Translated text
+     */
+    async translateText(text, sourceLanguage, targetLanguage) {
+        try {
+            console.log(`PaperMind: translateText called - ${sourceLanguage} → ${targetLanguage}`);
+            console.log(`PaperMind: Text to translate: "${text.substring(0, 100)}..."`);
+
+            // Default source to English if not provided
+            if (!sourceLanguage) {
+                sourceLanguage = 'en';
+                console.log(`PaperMind: No source language, defaulting to: ${sourceLanguage}`);
+            }
+
+            // If source equals target, assume source is English
+            if (sourceLanguage === targetLanguage) {
+                console.log(`PaperMind: Source equals target, forcing source to 'en'`);
+                sourceLanguage = 'en';
+            }
+
+            console.log(`PaperMind: Final languages - ${sourceLanguage} → ${targetLanguage}`);
+
+            // Use the translator helper
+            const translatedText = await self.TranslatorHelper.translateTextAuto(
+                text,
+                sourceLanguage,
+                targetLanguage,
+                (progress) => {
+                    console.log(`PaperMind: Translation model download: ${progress}%`);
+                }
+            );
+
+            console.log(`PaperMind: Translation complete: "${translatedText.substring(0, 100)}..."`);
+            return translatedText;
+
+        } catch (error) {
+            console.error('PaperMind: Translation error:', error);
+            console.error('PaperMind: Error stack:', error.stack);
+            throw new Error(`Translation failed: ${error.message}`);
+        }
+    }
+
+    /**
+     * Translate HTML content by extracting text, translating, and rebuilding
+     * @param {string} html - HTML content to translate
+     * @param {string} sourceLanguage - Source language code
+     * @param {string} targetLanguage - Target language code
+     * @returns {Promise<string>} Translated HTML
+     */
+    async translateHtmlContent(html, sourceLanguage, targetLanguage) {
+        try {
+            console.log(`PaperMind: translateHtmlContent - Processing ${html.length} chars`);
+
+            const textSegments = [];
+            const tagPattern = /(<[^>]+>)/g;
+            const parts = html.split(tagPattern);
+
+            console.log(`PaperMind: Split into ${parts.length} parts`);
+
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+
+                // Skip HTML tags
+                if (part.match(/^<[^>]+>$/)) {
+                    textSegments.push({ original: part, translated: part, isTag: true });
+                    continue;
+                }
+
+                // Skip empty or whitespace-only
+                const trimmed = part.trim();
+                if (!trimmed) {
+                    textSegments.push({ original: part, translated: part, isTag: false });
+                    continue;
+                }
+
+                // Translate this text segment
+                try {
+                    const translated = await this.translateText(trimmed, sourceLanguage, targetLanguage);
+
+                    // Preserve whitespace
+                    const leadingSpace = part.match(/^(\s*)/)[0];
+                    const trailingSpace = part.match(/(\s*)$/)[0];
+
+                    textSegments.push({
+                        original: part,
+                        translated: leadingSpace + translated + trailingSpace,
+                        isTag: false
+                    });
+
+                    console.log(`PaperMind: Translated segment ${i}: "${trimmed.substring(0, 50)}" → "${translated.substring(0, 50)}"`);
+                } catch (error) {
+                    console.warn(`PaperMind: Failed to translate segment ${i}:`, error);
+                    textSegments.push({ original: part, translated: part, isTag: false });
+                }
+            }
+
+            // Rebuild HTML
+            const result = textSegments.map(seg => seg.translated).join('');
+            console.log(`PaperMind: Rebuilt HTML - ${result.length} chars`);
+            return result;
+
+        } catch (error) {
+            console.error('PaperMind: translateHtmlContent error:', error);
+            return html; // Return original on error
+        }
+    }
+
+    /**
+     * Translate analysis HTML (array of HTML sections)
+     * @param {string|Array} htmlContent - HTML content to translate
+     * @param {string} sourceLanguage - Source language code
+     * @param {string} targetLanguage - Target language code
+     * @returns {Promise<string|Array>} Translated HTML content
+     */
+    async translateAnalysis(htmlContent, sourceLanguage, targetLanguage) {
+        try {
+            console.log(`PaperMind: translateAnalysis called`);
+            console.log(`PaperMind: Languages: ${sourceLanguage} → ${targetLanguage}`);
+            console.log(`PaperMind: Content type: ${Array.isArray(htmlContent) ? 'Array' : 'String'}`);
+
+            if (Array.isArray(htmlContent)) {
+                console.log(`PaperMind: Translating ${htmlContent.length} sections...`);
+                const translatedSections = [];
+
+                for (let i = 0; i < htmlContent.length; i++) {
+                    console.log(`PaperMind: --- Section ${i + 1}/${htmlContent.length} ---`);
+
+                    const translatedSection = await this.translateHtmlContent(
+                        htmlContent[i],
+                        sourceLanguage,
+                        targetLanguage
+                    );
+                    translatedSections.push(translatedSection);
+
+                    console.log(`PaperMind: Section ${i + 1} complete`);
+                }
+
+                console.log(`PaperMind: All ${htmlContent.length} sections translated!`);
+                return translatedSections;
+            } else {
+                console.log(`PaperMind: Translating single HTML string...`);
+                return await this.translateHtmlContent(htmlContent, sourceLanguage, targetLanguage);
+            }
+
+        } catch (error) {
+            console.error('PaperMind: translateAnalysis error:', error);
+            console.error('PaperMind: Error stack:', error.stack);
+            throw error;
+        }
     }
 }
 

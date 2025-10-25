@@ -20,13 +20,14 @@
 - **Text Selection**: Highlight any text for instant AI explanation
 - **Contextual Questions**: Ask follow-up questions about highlighted content
 - **Simplification**: Get simplified explanations of complex terms
-- **Translation**: Translate highlighted text to your preferred language
+- **🌐 Translation**: Translate highlighted text to your preferred language (12+ languages supported)
 
 ### 🔧 Advanced Features
 - **Multi-Site Support**: Works on arXiv, Nature, Science, Springer, IEEE, ACM, and more
 - **Recent Papers**: Track and revisit previously analyzed papers
 - **Settings Customization**: Configure AI model and preferences
 - **Privacy-First**: All processing done locally using Chrome's built-in AI
+- **🌐 Real-Time Translation**: Translate entire analyses or selected text to 12+ languages using Chrome's built-in AI
 
 ## 🚀 Installation
 
@@ -85,10 +86,13 @@
 2. Specify the concept you want visualized
 3. Get AI-generated diagrams and flowcharts
 
-#### Multi-language Support
-1. Go to Settings → Language
-2. Select your preferred language
-3. All AI responses will be in your chosen language
+#### Multi-language Support & Translation
+1. **Set Default Language**: Go to Settings → Language
+2. **Translate Analysis**: Click the 🌐 globe icon in the analysis panel
+3. **Translate Text**: Highlight any text and click 🌐 in the context menu
+4. **12+ Languages**: English, Spanish, French, German, Chinese, Japanese, and more!
+
+For detailed translation usage, see [TRANSLATION_GUIDE.md](TRANSLATION_GUIDE.md)
 
 ## 🛠️ Technical Architecture
 
@@ -128,8 +132,15 @@ The extension leverages Chrome's built-in AI APIs:
 - **Summarizer API**: For paper summarization
 - **Writer API**: For text generation
 - **Rewriter API**: For text simplification
-- **Translator API**: For multi-language support
+- **🌐 Translator API**: For multi-language support (fully implemented)
 - **Proofreader API**: For text correction
+
+**Translation Feature Highlights:**
+- Translate entire paper analyses to 12+ languages
+- Translate highlighted text on-demand
+- Preserves formatting, equations, and structure
+- Works offline after model download
+- Privacy-first: all translation happens locally
 
 ### Supported Sites
 

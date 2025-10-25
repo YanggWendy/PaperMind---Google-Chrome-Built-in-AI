@@ -52,6 +52,7 @@
             "js": [
                 "prompts.js",
                 "chromeAIHelper.js",
+                "translatorHelper.js",
                 "content.js"
             ],
             "css": [

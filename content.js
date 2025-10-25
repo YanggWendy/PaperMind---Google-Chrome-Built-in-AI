@@ -130,6 +130,24 @@ class PaperMind {
                     <span class="panel-title-text">PaperMind</span>
                 </div>
                 <div class="panel-header-controls">
+                    <div class="language-selector" id="language-selector" title="Translate analysis">
+                        <button class="translate-btn" id="translate-btn">🌐</button>
+                        <select class="language-select hidden" id="language-select-dropdown">
+                            <option value="">Select language...</option>
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="zh">Chinese</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="ru">Russian</option>
+                            <option value="ar">Arabic</option>
+                            <option value="hi">Hindi</option>
+                        </select>
+                    </div>
                     <div class="view-toggle-switch hidden" id="view-toggle-switch" title="Switch between original and enhanced view">
                         <label class="toggle-switch">
                             <input type="checkbox" id="view-toggle-checkbox">
@@ -285,6 +303,30 @@ class PaperMind {
         const toggleCheckbox = panel.querySelector('#view-toggle-checkbox');
         toggleCheckbox.addEventListener('change', () => {
             this.toggleEnhancedView();
+        });
+
+        // Translation controls
+        const translateBtn = panel.querySelector('#translate-btn');
+        const languageDropdown = panel.querySelector('#language-select-dropdown');
+        
+        translateBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            languageDropdown.classList.toggle('hidden');
+        });
+
+        languageDropdown.addEventListener('change', async (e) => {
+            const targetLanguage = e.target.value;
+            if (targetLanguage) {
+                await this.translateAnalysis(targetLanguage);
+                languageDropdown.classList.add('hidden');
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.language-selector')) {
+                languageDropdown.classList.add('hidden');
+            }
         });
 
         // Load and display existing notes
@@ -677,6 +719,9 @@ class PaperMind {
                 <button class="search-icon-btn" id="quick-search-btn" title="Quick explanation">
                     <span class="search-icon">?</span>
                 </button>
+                <button class="search-icon-btn" id="translate-text-btn" title="Translate text">
+                    <span class="search-icon">🌐</span>
+                </button>
                 <input type="text" 
                        class="search-input" 
                        id="search-input" 
@@ -697,11 +742,33 @@ class PaperMind {
 
         const input = searchBar.querySelector('#search-input');
         const quickBtn = searchBar.querySelector('#quick-search-btn');
+        const translateBtn = searchBar.querySelector('#translate-text-btn');
         const submitBtn = searchBar.querySelector('#search-submit-btn');
 
         // Quick search button (default explanation)
         quickBtn.addEventListener('click', () => {
             this.generateExplanation('default', '');
+            searchBar.remove();
+        });
+
+        // Translate button - show language selector
+        translateBtn.addEventListener('click', async () => {
+            const targetLanguage = await this.showLanguageSelector();
+            if (targetLanguage) {
+                try {
+                    this.showKnowledgePanel('loading');
+                    const translation = await this.translateHighlightedText(this.highlightedText, targetLanguage);
+                    if (translation) {
+                        this.showKnowledgePanel('result', {
+                            fullExplanation: `**Translation to ${this.getLanguageName(targetLanguage)}:**\n\n${translation}`,
+                            keyPoints: []
+                        });
+                    }
+                } catch (error) {
+                    this.showNotification('Translation failed. Please try again.', 'error');
+                    this.showKnowledgePanel('empty');
+                }
+            }
             searchBar.remove();
         });
 
@@ -1995,6 +2062,11 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 // Small delay to show the final progress
                 await new Promise(resolve => setTimeout(resolve, 500));
 
+                // Save the ORIGINAL analysis HTML for translation
+                // IMPORTANT: Keep original separate so we can always translate from English
+                this.originalAnalysisHtml = response.summary;
+                this.currentAnalysisHtml = response.summary;
+
                 // Check if it's the new HTML array format or old object format
                 if (Array.isArray(response.summary)) {
                     this.renderEnhancedPaper(response.summary);
@@ -2511,6 +2583,262 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 overlay.remove();
             }
         }, 10000);
+    }
+
+    /**
+     * Translate the analysis results to a target language
+     * @param {string} targetLanguage - Target language code (e.g., 'es', 'fr', 'zh')
+     */
+    async translateAnalysis(targetLanguage) {
+        if (!this.originalAnalysisHtml || this.originalAnalysisHtml.length === 0) {
+            this.showNotification('No analysis to translate. Please analyze the paper first.', 'warning');
+            return;
+        }
+
+        try {
+            // Show progress
+            this.showNotification(`Translating analysis to ${this.getLanguageName(targetLanguage)}...`, 'info');
+            
+            // Update progress section
+            const progressSection = document.getElementById('progress-section');
+            const progressMessage = document.getElementById('progress-message');
+            if (progressSection && progressMessage) {
+                progressSection.classList.remove('hidden');
+                progressMessage.textContent = 'Translating analysis...';
+            }
+
+            // ALWAYS translate from ORIGINAL English content, not from previous translation
+            // This ensures: English → Chinese (not English → Spanish → Chinese)
+            const sourceLanguage = 'en';
+
+            console.log('PaperMind: Starting translation...');
+            console.log('Source language:', sourceLanguage, '(always original English)');
+            console.log('Target language:', targetLanguage);
+            console.log('HTML sections to translate:', Array.isArray(this.originalAnalysisHtml) ? this.originalAnalysisHtml.length : 1);
+
+            // Call background script to translate FROM ORIGINAL
+            const response = await chrome.runtime.sendMessage({
+                action: 'translateAnalysis',
+                htmlContent: this.originalAnalysisHtml,  // ← ALWAYS use original!
+                sourceLanguage: sourceLanguage,
+                targetLanguage: targetLanguage
+            });
+
+            console.log('PaperMind: Translation response received:', response ? 'success' : 'failed');
+
+            if (response && response.translatedAnalysis) {
+                console.log('PaperMind: Translated sections:', Array.isArray(response.translatedAnalysis) ? response.translatedAnalysis.length : 1);
+                
+                // Update the CURRENT display (but keep original unchanged!)
+                this.currentAnalysisHtml = response.translatedAnalysis;
+                
+                // Re-render with translated content
+                if (Array.isArray(response.translatedAnalysis)) {
+                    console.log('PaperMind: Re-rendering enhanced paper with translated content...');
+                    this.renderEnhancedPaper(response.translatedAnalysis);
+                    console.log('PaperMind: Re-render complete!');
+                }
+                
+                // Hide progress
+                if (progressSection) {
+                    progressSection.classList.add('hidden');
+                }
+
+                // Store current language for reference
+                this.currentLanguage = targetLanguage;
+
+                this.showNotification(`Translation to ${this.getLanguageName(targetLanguage)} complete! (Translated from original English)`, 'success');
+            } else if (response && response.error) {
+                throw new Error(response.error);
+            }
+
+        } catch (error) {
+            console.error('PaperMind: Translation error:', error);
+            this.showNotification(`Translation failed: ${error.message}`, 'error');
+            
+            // Hide progress on error
+            const progressSection = document.getElementById('progress-section');
+            if (progressSection) {
+                progressSection.classList.add('hidden');
+            }
+        }
+    }
+
+    /**
+     * Translate highlighted text to a target language
+     * @param {string} text - Text to translate
+     * @param {string} targetLanguage - Target language code
+     */
+    async translateHighlightedText(text, targetLanguage) {
+        try {
+            // Get source language from settings or detect
+            const result = await chrome.storage.sync.get(['language']);
+            const sourceLanguage = result.language || 'en';
+
+            // Call background script to translate
+            const response = await chrome.runtime.sendMessage({
+                action: 'translateText',
+                text: text,
+                sourceLanguage: sourceLanguage,
+                targetLanguage: targetLanguage
+            });
+
+            if (response && response.translation) {
+                return response.translation;
+            } else if (response && response.error) {
+                throw new Error(response.error);
+            }
+
+            return null;
+
+        } catch (error) {
+            console.error('PaperMind: Error translating text:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get language name from code
+     * @param {string} code - Language code (e.g., 'es', 'fr')
+     * @returns {string} Language name
+     */
+    getLanguageName(code) {
+        const languages = {
+            'en': 'English',
+            'es': 'Spanish',
+            'fr': 'French',
+            'de': 'German',
+            'it': 'Italian',
+            'pt': 'Portuguese',
+            'zh': 'Chinese',
+            'ja': 'Japanese',
+            'ko': 'Korean',
+            'ru': 'Russian',
+            'ar': 'Arabic',
+            'hi': 'Hindi',
+            'nl': 'Dutch',
+            'pl': 'Polish',
+            'tr': 'Turkish'
+        };
+        return languages[code] || code.toUpperCase();
+    }
+
+    /**
+     * Show a language selector dialog
+     * @returns {Promise<string|null>} Selected language code or null if cancelled
+     */
+    showLanguageSelector() {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'papermind-language-selector-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10005;
+            `;
+
+            const dialog = document.createElement('div');
+            dialog.className = 'papermind-language-selector-dialog';
+            dialog.style.cssText = `
+                background: white;
+                border-radius: 12px;
+                padding: 24px;
+                max-width: 400px;
+                width: 90%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            `;
+
+            const languages = [
+                { code: 'en', name: 'English' },
+                { code: 'es', name: 'Spanish' },
+                { code: 'fr', name: 'French' },
+                { code: 'de', name: 'German' },
+                { code: 'it', name: 'Italian' },
+                { code: 'pt', name: 'Portuguese' },
+                { code: 'zh', name: 'Chinese' },
+                { code: 'ja', name: 'Japanese' },
+                { code: 'ko', name: 'Korean' },
+                { code: 'ru', name: 'Russian' },
+                { code: 'ar', name: 'Arabic' },
+                { code: 'hi', name: 'Hindi' }
+            ];
+
+            dialog.innerHTML = `
+                <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #1f2937;">Select Translation Language</h3>
+                <div class="language-grid" style="
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 8px;
+                    margin-bottom: 16px;
+                ">
+                    ${languages.map(lang => `
+                        <button class="language-option" data-lang="${lang.code}" style="
+                            padding: 12px;
+                            border: 1px solid #e5e7eb;
+                            background: white;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 14px;
+                            transition: all 0.2s;
+                            text-align: left;
+                        ">
+                            ${lang.name}
+                        </button>
+                    `).join('')}
+                </div>
+                <button class="cancel-btn" style="
+                    width: 100%;
+                    padding: 10px;
+                    border: 1px solid #e5e7eb;
+                    background: white;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                ">Cancel</button>
+            `;
+
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            // Add hover effects
+            const langButtons = dialog.querySelectorAll('.language-option');
+            langButtons.forEach(btn => {
+                btn.addEventListener('mouseenter', () => {
+                    btn.style.background = '#f3f4f6';
+                    btn.style.borderColor = '#667eea';
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.background = 'white';
+                    btn.style.borderColor = '#e5e7eb';
+                });
+                btn.addEventListener('click', () => {
+                    const langCode = btn.dataset.lang;
+                    overlay.remove();
+                    resolve(langCode);
+                });
+            });
+
+            // Cancel button
+            dialog.querySelector('.cancel-btn').addEventListener('click', () => {
+                overlay.remove();
+                resolve(null);
+            });
+
+            // Close on overlay click
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.remove();
+                    resolve(null);
+                }
+            });
+        });
     }
 }
 

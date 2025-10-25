@@ -3506,3 +3506,99 @@ body.papermind-enhanced-mode .papermind-original {
         background: #333;
     }
 }
+/* Translation Controls */
+.language-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    margin-right: 12px;
+}
+
+.translate-btn {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+}
+
+.translate-btn:hover {
+    background: rgba(102, 126, 234, 0.1);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.language-select {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 150px;
+    z-index: 1001;
+    font-size: 13px;
+}
+
+.language-select.hidden {
+    display: none;
+}
+
+.language-select option {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.language-select option:hover {
+    background: #f3f4f6;
+}
+
+/* Language Selector Dialog */
+.papermind-language-selector-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10005;
+    animation: fadeIn 0.2s ease;
+}
+
+.papermind-language-selector-dialog {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
