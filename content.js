@@ -24,6 +24,9 @@ class PaperMind {
         if (this.isResearchPaper()) {
             console.log('🧠 PaperMind: Research paper detected!');
 
+            // Load MathJax for equation rendering
+            this.loadMathJax();
+
             // Extract paper content immediately (ready for analysis when user clicks)
             this.extractPaperContent();
             console.log('✅ PaperMind: Paper content extracted and ready for analysis');
@@ -32,6 +35,53 @@ class PaperMind {
             this.createFloatingButton();
             this.setupEventListeners();
         }
+    }
+
+    loadMathJax() {
+        // Check if MathJax is already loaded
+        if (window.MathJax) {
+            console.log('PaperMind: MathJax already loaded');
+            return;
+        }
+
+        // Configure MathJax before loading - inject into page context
+        const configScript = document.createElement('script');
+        configScript.textContent = `
+            window.MathJax = {
+                tex: {
+                    inlineMath: [['\\\\(', '\\\\)']],
+                    displayMath: [['\\\\[', '\\\\]']],
+                    processEscapes: false,
+                    processEnvironments: true
+                },
+                options: {
+                    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                    ignoreHtmlClass: 'papermind-original-content'
+                },
+                startup: {
+                    ready: () => {
+                        console.log('PaperMind: MathJax loaded and ready');
+                        MathJax.startup.defaultReady();
+                        MathJax.startup.promise.then(() => {
+                            console.log('PaperMind: MathJax startup complete');
+                        });
+                    }
+                }
+            };
+        `;
+        document.head.appendChild(configScript);
+
+        // Load MathJax script - inject into page context to bypass CSP
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+        script.async = true;
+        script.onload = () => {
+            console.log('PaperMind: MathJax script loaded');
+        };
+        script.onerror = (e) => {
+            console.error('PaperMind: Failed to load MathJax:', e);
+        };
+        document.head.appendChild(script);
     }
 
     isResearchPaper() {
@@ -2042,6 +2092,12 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
             // Parse markdown syntax in the HTML
             const parsedHtml = this.parseMarkdownInHtml(html);
+            
+            // Debug: Log a sample of the HTML to check for escaping issues
+            const mathSample = parsedHtml.match(/\\[\[\(][\s\S]{0,100}/);
+            if (mathSample) {
+                console.log('PaperMind: Math delimiter sample:', mathSample[0]);
+            }
 
             // Wrap original content in a container that can be hidden
             const originalWrapper = document.createElement('div');
@@ -2142,7 +2198,43 @@ Provide a focused answer to the follow-up question, building on the previous exp
         article.classList.add('papermind-enhanced');
         article.classList.remove('papermind-original');
 
+        // Trigger MathJax to render equations (AI generates \(...\) and \[...\] directly)
+        // Use setTimeout to ensure DOM is fully updated before MathJax processes it
+        setTimeout(() => {
+            this.renderMathJax(article);
+        }, 100);
+
         console.log('PaperMind: Enhanced paper rendered successfully');
+    }
+
+    renderMathJax(container) {
+        // Trigger MathJax typesetting on the container
+        if (window.MathJax) {
+            console.log('PaperMind: Triggering MathJax typesetting...');
+            
+            // Check if typesetPromise is available
+            if (window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([container])
+                    .then(() => {
+                        console.log('PaperMind: MathJax typesetting complete');
+                    })
+                    .catch((err) => {
+                        console.error('PaperMind: MathJax typesetting error:', err);
+                    });
+            } else if (window.MathJax.typeset) {
+                // Fallback to synchronous typeset if promise version not available
+                try {
+                    window.MathJax.typeset([container]);
+                    console.log('PaperMind: MathJax typesetting complete (sync)');
+                } catch (err) {
+                    console.error('PaperMind: MathJax typesetting error:', err);
+                }
+            } else {
+                console.warn('PaperMind: MathJax loaded but typeset functions not available');
+            }
+        } else {
+            console.warn('PaperMind: MathJax not loaded, math equations will not render');
+        }
     }
 
     toggleSectionView(section, button) {
@@ -2175,6 +2267,11 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 btn.textContent = 'Original';
                 btn.title = 'Switch to original view';
             });
+            
+            // Re-render MathJax for the newly visible enhanced content
+            setTimeout(() => {
+                this.renderMathJax(section);
+            }, 50);
         }
     }
 
@@ -2200,6 +2297,14 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
         // Links: [text](url) → <a href="url">text</a>
         html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+        // CRITICAL FIX: Ensure math delimiters are NOT escaped
+        // If the AI or any processing escaped \[ to \\[, fix it back
+        // This handles cases where backslashes got doubled during string processing
+        html = html.replace(/\\\\\[/g, '\\[');  // \\[ → \[
+        html = html.replace(/\\\\\]/g, '\\]');  // \\] → \]
+        html = html.replace(/\\\\\(/g, '\\(');  // \\( → \(
+        html = html.replace(/\\\\\)/g, '\\)');  // \\) → \)
 
         return html;
     }

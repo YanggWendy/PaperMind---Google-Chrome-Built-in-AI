@@ -393,40 +393,10 @@ body.papermind-enhanced-mode .papermind-original {
     display: none;
 }
 
-/* Math Display Styles */
-code.math {
-    background: #f5f5f5;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-family: 'Latin Modern Math', 'STIX Two Math', 'Cambria Math', 'Courier New', monospace;
-    font-size: 14px;
-    color: #2c3e50;
-    font-style: italic;
-    white-space: nowrap;
-    display: inline-block;
-    line-height: 1.4;
-}
-
-pre.math {
-    background: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-left: 3px solid #667eea;
-    border-radius: 4px;
-    padding: 12px 16px;
-    margin: 12px 0;
-    font-family: 'Latin Modern Math', 'STIX Two Math', 'Cambria Math', 'Courier New', monospace;
-    font-size: 15px;
-    color: #2c3e50;
-    font-style: italic;
+/* Math Display Styles - MathJax will handle rendering, but keep some basic styles */
+.MathJax {
     overflow-x: auto;
-    white-space: pre-wrap;
-    line-height: 1.8;
-    display: block;
-}
-
-/* Make math symbols more readable */
-.math {
-    letter-spacing: 0.5px;
+    overflow-y: hidden;
 }
 
 /* Details/More Section */
@@ -770,19 +740,6 @@ pre.math {
     .paper-chunk .more code {
         background: #1f1f1f;
         color: #ff6b9d;
-    }
-
-    /* Dark mode for math equations */
-    code.math {
-        background: #1f1f1f;
-        color: #a8d8ea;
-    }
-
-    pre.math {
-        background: #1f1f1f;
-        border-color: #444;
-        border-left-color: #667eea;
-        color: #a8d8ea;
     }
 
     .paper-chunk footer.provenance {
