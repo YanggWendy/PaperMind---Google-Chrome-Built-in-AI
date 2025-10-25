@@ -148,7 +148,6 @@ The extension leverages Chrome's built-in AI APIs:
 | Setting | Description | Default |
 |---------|-------------|---------|
 | Auto-analyze | Automatically analyze papers when detected | ✅ |
-| Show Diagrams | Generate diagrams for complex concepts | ✅ |
 | Highlight Mode | Enable text highlighting features | ❌ |
 | AI Model | Choose between Gemini Nano/Pro | Gemini Nano |
 | Language | Default language for responses | English |

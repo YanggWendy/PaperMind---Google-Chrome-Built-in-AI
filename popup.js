@@ -20,7 +20,6 @@ class PaperMindPopup {
         try {
             const result = await chrome.storage.sync.get([
                 'autoAnalyze',
-                'showDiagrams',
                 'highlightMode',
                 'aiModel',
                 'language'
@@ -28,7 +27,6 @@ class PaperMindPopup {
 
             this.settings = {
                 autoAnalyze: result.autoAnalyze !== false,
-                showDiagrams: result.showDiagrams !== false,
                 highlightMode: result.highlightMode || false,
                 aiModel: result.aiModel || 'gemini-nano',
                 language: result.language || 'en'
@@ -37,7 +35,6 @@ class PaperMindPopup {
             console.error('Error loading settings:', error);
             this.settings = {
                 autoAnalyze: true,
-                showDiagrams: true,
                 highlightMode: false,
                 aiModel: 'gemini-nano',
                 language: 'en'
@@ -282,7 +279,6 @@ class PaperMindPopup {
 
     populateSettingsForm() {
         document.getElementById('auto-analyze').checked = this.settings.autoAnalyze;
-        document.getElementById('show-diagrams').checked = this.settings.showDiagrams;
         document.getElementById('highlight-mode').checked = this.settings.highlightMode;
         document.getElementById('ai-model-select').value = this.settings.aiModel;
         document.getElementById('language-select').value = this.settings.language;
@@ -291,7 +287,6 @@ class PaperMindPopup {
     async saveSettings() {
         const newSettings = {
             autoAnalyze: document.getElementById('auto-analyze').checked,
-            showDiagrams: document.getElementById('show-diagrams').checked,
             highlightMode: document.getElementById('highlight-mode').checked,
             aiModel: document.getElementById('ai-model-select').value,
             language: document.getElementById('language-select').value

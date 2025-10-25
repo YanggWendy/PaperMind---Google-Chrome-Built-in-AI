@@ -611,7 +611,7 @@ class PaperMindAI {
         try {
             console.log('PaperMind: Generating paper summary using Chrome Summarizer API...');
             console.log('PaperMind: Text length:', text?.length, 'Paper title:', paperData?.title);
-            
+
             // Try using the Summarizer API first
             const summary = await this.summarizeWithChromeAI(text, {
                 type: "tl;dr",
@@ -721,7 +721,6 @@ chrome.runtime.onInstalled.addListener((details) => {
         // Set up default settings
         chrome.storage.sync.set({
             autoAnalyze: true,
-            showDiagrams: true,
             aiModel: 'gemini-nano'
         });
     }
