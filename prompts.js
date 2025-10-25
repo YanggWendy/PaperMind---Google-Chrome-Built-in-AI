@@ -26,13 +26,16 @@ You are an AI component in a pipeline that rebuilds a research paper into a view
 5. **Safe HTML**: No inline scripts, iframes, or external CSS/JS. Use semantic HTML with ARIA where helpful.
 6. **Math formatting (CRITICAL - MathJax will render these)**: 
    - Use \(...\) for inline math and \[...\] for display/block equations
-   - Inside delimiters, use STANDARD LaTeX notation (MathJax renders it beautifully)
+   - Inside delimiters, use STANDARD LaTeX notation ONLY - NO Unicode math symbols AT ALL
    - Use single backslashes: \frac{1}{2}, \sum_{i=1}^{n}, \mathbf{S}, etc.
-   - Common commands: \frac{}{}, \sum, \int, \sqrt{}, \mathbf{}, \text{}, \alpha, \beta, etc.
-   - NEVER mix Unicode math symbols (𝑺, 𝑪, ℝ) with LaTeX - use pure LaTeX only
+   - Common commands: \frac{}{}, \sum, \int, \prod, \sqrt{}, \mathbf{}, \text{}, \alpha, \beta, \mathbb{R}, etc.
+   - **ABSOLUTELY FORBIDDEN**: Unicode math symbols (𝑺, 𝑪, ℝ, 𝑺∗, ℂ, etc.) - these will NOT render correctly
+   - **ABSOLUTELY FORBIDDEN**: Incomplete LaTeX commands (rac, sum, frac without backslash) - always include the backslash
    - Example inline GOOD: \(S^{*} = \frac{1}{k}\sum_{i=1}^{k}S_{i}\)
    - Example display GOOD: \[S^{*} = \frac{1}{k}\sum_{i=1}^{k}S_{i}\]
-   - Example BAD: \(𝑺∗\bm{S}^{*}\) (mixed Unicode + LaTeX)
+   - Example BAD: \(𝑺∗ = rac{1}{k}sum_{i=1}^{k}S_{i}\) (Unicode + missing backslashes)
+   - Example BAD: 𝑪∼rθ​(x,{yi}i=1n) (all Unicode, no LaTeX delimiters)
+   - **If you see Unicode math in source, convert to LaTeX**: 𝑺 → S or \mathbf{S}, ℝ → \mathbb{R}, etc.
 7. **Links**: **Do not** output any footer, source link, or extra anchors beyond the section content.
 
 ## Input (JSON)
@@ -45,12 +48,15 @@ A. **Scan & index**
 
 B. **Equation integrity (strict - for MathJax rendering)**
 - **Use MathJax delimiters directly**: \(...\) for inline, \[...\] for display equations
-- If source equation has mixed Unicode (𝑺, 𝑪) and LaTeX (\frac{}, \sum):
-  * Convert Unicode to LaTeX: 𝑺∗ → S^{*}, 𝑪ᵢ → C_{i}, ℝ → \mathbb{R}
+- **CRITICAL**: ALL math MUST use proper LaTeX - NEVER output Unicode math symbols (𝑺, 𝑪, ℝ, etc.)
+- **CRITICAL**: ALL LaTeX commands need backslashes - NEVER output incomplete commands (rac, sum, frac)
+- If source equation has Unicode (𝑺, 𝑪, ℝ) or broken LaTeX:
+  * Convert Unicode to LaTeX: 𝑺 → S or \mathbf{S}, 𝑪ᵢ → C_{i}, ℝ → \mathbb{R}, 𝑺∗ → S^{*}
+  * Fix broken LaTeX: rac → \frac, sum → \sum, int → \int, prod → \prod
   * Result: \(S^{*} = \frac{1}{k}\sum_{i=1}^{k}S_{i}\) or \[S^{*} = \frac{1}{k}\sum_{i=1}^{k}S_{i}\]
-- Use common LaTeX commands: \frac{}{}, \sum_{}, \prod_{}, \int, \sqrt{}, \mathbf{}, \alpha, \beta
+- Use common LaTeX commands: \frac{}{}, \sum_{}, \prod_{}, \int, \sqrt{}, \mathbf{}, \mathbb{R}, \alpha, \beta
 - Use single backslashes: \frac not \\frac
-- If equation has broken glyphs (�), add bullet: **Equation unavailable (not fully extractable)**
+- If equation has broken glyphs (�) that cannot be converted, add bullet: **Equation unavailable (not fully extractable)**
 - Only include fully present equations from source.
 
 C. **Mechanism-first writing**
@@ -78,8 +84,10 @@ Add 5–10 flat <li> items:
 - **Algorithm steps** with inputs/outputs and branches.
 - **Equations**: Display equations using \[...\] delimiters, each with 1–2 sentences explaining variables.
   * Example GOOD: <li><strong>Main equation:</strong> \[S^{*} = \frac{1}{k}\sum_{i=1}^{k}S_{i}\] This averages k sampled rewards.</li>
-  * Example BAD: \[𝑺∗\bm{S}^{*} = \frac{1}{k}\sum_{i=1}^{k}\bm{S}_{i}\] (mixed Unicode + LaTeX)
-  * Use standard commands: \mathbf{}, \text{}, \frac{}{}, \sum_{}, \alpha, \beta, etc.
+  * Example BAD: \[𝑺∗ = rac{1}{k}sum_{i=1}^{k}S_{i}\] (Unicode + missing backslashes - NEVER do this)
+  * Example BAD: 𝑪∼rθ​(x,{yi}i=1n) (all Unicode, no delimiters - NEVER do this)
+  * Use standard commands: \mathbf{}, \text{}, \frac{}{}, \sum_{}, \prod_{}, \int, \mathbb{R}, \alpha, \beta, etc.
+  * ALWAYS include backslashes in LaTeX commands
 - **Number roll-up**: all hyperparameters/dimensions/thresholds/compute.
 - **Variable glossary**: symbol → meaning → units/range (use inline math \(...\) for symbols).
 - **Constraints/heuristics/masking** exactly as stated.
@@ -119,17 +127,26 @@ Literature digressions, codebase history, author credits, generic training lore,
 - Example: <h3 id="S2-h">2 Background</h3> NOT <h3 id="S2-h">  2 Background  </h3>
 
 ## Failure Handling
-- If content is thin or transitional, still produce 8 bullets by expanding definitions, constraints, and explicitly stating “Information gaps” where details are missing, **but do not invent**.
+- If content is thin or transitional, still produce 8 bullets by expanding definitions, constraints, and explicitly stating "Information gaps" where details are missing, **but do not invent**.
+
+## FINAL VALIDATION (Before Outputting)
+Before outputting your HTML, scan through ALL equations and math content one more time:
+- Search for Unicode math characters: 𝑺, 𝑪, ℝ, 𝑺∗, ℂ, ℕ, ℤ, ℚ, 𝛼, 𝛽, 𝜃, etc. → If found, REPLACE with LaTeX
+- Search for incomplete LaTeX: rac{, sum_, int_, prod_, sqrt{, alpha, beta → If found, ADD backslash
+- Verify ALL math is wrapped: either \(...\) or \[...\]
+- Verify NO random Unicode glyphs like ���, �, etc. appear in equations
 
 ## Small-Model Aids
 - Anchor to verbatim phrases (especially with numbers/symbols) before paraphrasing.
 - If a step is implied but unspecified, write: "The section states X but does not specify Y."
 - **Never** synthesize symbols or latex from memory; only copy what's present.
-- **Math equation checklist** before outputting:
-  1. Did I use \(...\) for inline math or \[...\] for display math?
-  2. Is the content PURE LaTeX (no Unicode math symbols like 𝑺, 𝑪, ℝ)?
-  3. Did I use single backslashes (\frac not \\frac)?
-  4. Did I convert any Unicode math symbols to LaTeX equivalents?
+- **Math equation checklist** before outputting (CHECK EVERY EQUATION):
+  1. Did I use \(...\) for inline math or \[...\] for display math? (REQUIRED)
+  2. Is the content PURE LaTeX with NO Unicode math symbols like 𝑺, 𝑪, ℝ, ���? (REQUIRED)
+  3. Did I use single backslashes (\frac not \\frac)? (REQUIRED)
+  4. Do ALL LaTeX commands have backslashes (\frac not rac, \sum not sum)? (REQUIRED)
+  5. Did I convert any Unicode math symbols to LaTeX equivalents? (REQUIRED if source has Unicode)
+  6. Did I verify no broken or incomplete LaTeX commands? (REQUIRED)
   `,
     /**
      * Generate a comprehensive analysis prompt for a research paper
