@@ -2779,14 +2779,20 @@ body.papermind-enhanced-mode .papermind-original {
     background: none;
     border: none;
     cursor: pointer;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
     transition: all 0.2s;
     font-size: 16px;
+    padding: 0;
+}
+
+.note-edit svg {
+    width: 16px;
+    height: 16px;
 }
 
 .note-edit {
@@ -2800,7 +2806,8 @@ body.papermind-enhanced-mode .papermind-original {
 
 .note-delete {
     color: #dc3545;
-    font-size: 20px;
+    font-size: 22px;
+    line-height: 1;
 }
 
 .note-delete:hover {

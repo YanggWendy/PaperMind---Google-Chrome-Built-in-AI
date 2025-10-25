@@ -20,10 +20,10 @@ async function callPromptAPI(session, prompt) {
         }
 
         console.log('Chrome AI Helper: Calling language model with prompt:', prompt.substring(0, 100) + '...');
-        
+
         // Send the prompt to the AI
         const response = await session.prompt(prompt);
-        
+
         console.log('Chrome AI Helper: Received response:', response.substring(0, 200) + '...');
 
         // Try to parse as JSON if the response looks like JSON
@@ -66,12 +66,36 @@ async function getLanguageModel(context = self, options = {}, onProgress = null)
     try {
         // Get the LanguageModel API
         const LanguageModelAPI = context.LanguageModel || context.ai?.languageModel;
-        
+
         if (!LanguageModelAPI) {
             throw new Error('LanguageModel API is not available. Chrome AI may not be enabled.');
         }
 
         console.log('Chrome AI Helper: Initializing language model...');
+        console.log('Chrome AI Helper: Checking API availability...');
+
+        // Check if the API is actually ready (with timeout)
+        try {
+            const capabilities = await Promise.race([
+                LanguageModelAPI.capabilities(),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Capabilities check timeout')), 5000)
+                )
+            ]);
+
+            console.log('Chrome AI Helper: API capabilities:', capabilities);
+
+            if (capabilities.available === 'no') {
+                throw new Error('Language Model is not available on this device. Please ensure Chrome AI is enabled.');
+            }
+
+            if (capabilities.available === 'after-download') {
+                console.log('Chrome AI Helper: Model needs to be downloaded. This may take a few minutes...');
+            }
+        } catch (capError) {
+            console.warn('Chrome AI Helper: Could not check capabilities:', capError);
+            // Continue anyway - some versions might not have capabilities() method
+        }
 
         // Default configuration
         const config = {
@@ -91,11 +115,17 @@ async function getLanguageModel(context = self, options = {}, onProgress = null)
             };
         }
 
-        // Create and download the language model session
-        const session = await LanguageModelAPI.create(config);
-        
+        console.log('Chrome AI Helper: Creating language model session...');
+        // Create and download the language model session with timeout
+        const session = await Promise.race([
+            LanguageModelAPI.create(config),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Session creation timeout after 60 seconds. The model may still be downloading. Please check chrome://components/ for "Optimization Guide On Device Model"')), 60000)
+            )
+        ]);
+
         console.log('Chrome AI Helper: Language model session created successfully');
-        
+
         return session;
 
     } catch (error) {
@@ -115,12 +145,12 @@ async function cloneSession(session) {
         if (!session || typeof session.clone !== 'function') {
             throw new Error('Session does not support cloning');
         }
-        
+
         console.log('Chrome AI Helper: Cloning session...');
         const clonedSession = await session.clone();
         console.log('Chrome AI Helper: Session cloned successfully');
         return clonedSession;
-        
+
     } catch (error) {
         console.error('Chrome AI Helper: Error cloning session:', error);
         throw error;
@@ -154,22 +184,22 @@ async function destroySession(session) {
  */
 async function callPromptAPIAuto(prompt, options = {}, onProgress = null) {
     let session = null;
-    
+
     try {
         // Try to get the LanguageModel from the current context
         const context = typeof self !== 'undefined' ? self : window;
-        
+
         // Get and initialize the language model session
         session = await getLanguageModel(context, options, onProgress);
-        
+
         // Call the AI with the prompt
         const response = await callPromptAPI(session, prompt);
-        
+
         // Clean up the session
         await destroySession(session);
-        
+
         return response;
-        
+
     } catch (error) {
         // Clean up session on error
         if (session) {
