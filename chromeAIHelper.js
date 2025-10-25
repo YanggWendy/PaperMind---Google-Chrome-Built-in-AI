@@ -72,30 +72,6 @@ async function getLanguageModel(context = self, options = {}, onProgress = null)
         }
 
         console.log('Chrome AI Helper: Initializing language model...');
-        console.log('Chrome AI Helper: Checking API availability...');
-
-        // Check if the API is actually ready (with timeout)
-        try {
-            const capabilities = await Promise.race([
-                LanguageModelAPI.capabilities(),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Capabilities check timeout')), 5000)
-                )
-            ]);
-
-            console.log('Chrome AI Helper: API capabilities:', capabilities);
-
-            if (capabilities.available === 'no') {
-                throw new Error('Language Model is not available on this device. Please ensure Chrome AI is enabled.');
-            }
-
-            if (capabilities.available === 'after-download') {
-                console.log('Chrome AI Helper: Model needs to be downloaded. This may take a few minutes...');
-            }
-        } catch (capError) {
-            console.warn('Chrome AI Helper: Could not check capabilities:', capError);
-            // Continue anyway - some versions might not have capabilities() method
-        }
 
         // Default configuration
         const config = {
@@ -115,14 +91,8 @@ async function getLanguageModel(context = self, options = {}, onProgress = null)
             };
         }
 
-        console.log('Chrome AI Helper: Creating language model session...');
-        // Create and download the language model session with timeout
-        const session = await Promise.race([
-            LanguageModelAPI.create(config),
-            new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Session creation timeout after 60 seconds. The model may still be downloading. Please check chrome://components/ for "Optimization Guide On Device Model"')), 60000)
-            )
-        ]);
+        // Create and download the language model session
+        const session = await LanguageModelAPI.create(config);
 
         console.log('Chrome AI Helper: Language model session created successfully');
 
@@ -245,4 +215,3 @@ if (typeof self !== 'undefined' && typeof window === 'undefined') {
         destroySession
     };
 }
-
