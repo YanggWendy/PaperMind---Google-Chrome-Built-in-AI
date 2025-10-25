@@ -234,7 +234,7 @@ body.papermind-enhanced-mode .papermind-original {
     max-width: 900px;
     margin: 0 auto;
     padding: 40px 20px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* Inherit font from original webpage instead of applying custom font */
     background: #ffffff;
     min-height: 100vh;
 }
@@ -295,6 +295,7 @@ body.papermind-enhanced-mode .papermind-original {
     margin-bottom: 20px;
     padding-bottom: 12px;
     border-bottom: 2px solid #667eea;
+    background: transparent; /* Ensure no background color */
 }
 
 .paper-chunk header h3 {
@@ -302,6 +303,7 @@ body.papermind-enhanced-mode .papermind-original {
     font-size: 24px;
     font-weight: 700;
     color: #1a1a1a;
+    background: transparent; /* Ensure no background color */
 }
 
 /* Essentials Section */
@@ -389,6 +391,42 @@ body.papermind-enhanced-mode .papermind-original {
 
 .paper-chunk .equations:empty {
     display: none;
+}
+
+/* Math Display Styles */
+code.math {
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Latin Modern Math', 'STIX Two Math', 'Cambria Math', 'Courier New', monospace;
+    font-size: 14px;
+    color: #2c3e50;
+    font-style: italic;
+    white-space: nowrap;
+    display: inline-block;
+    line-height: 1.4;
+}
+
+pre.math {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-left: 3px solid #667eea;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-family: 'Latin Modern Math', 'STIX Two Math', 'Cambria Math', 'Courier New', monospace;
+    font-size: 15px;
+    color: #2c3e50;
+    font-style: italic;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    line-height: 1.8;
+    display: block;
+}
+
+/* Make math symbols more readable */
+.math {
+    letter-spacing: 0.5px;
 }
 
 /* Details/More Section */
@@ -734,6 +772,19 @@ body.papermind-enhanced-mode .papermind-original {
         color: #ff6b9d;
     }
 
+    /* Dark mode for math equations */
+    code.math {
+        background: #1f1f1f;
+        color: #a8d8ea;
+    }
+
+    pre.math {
+        background: #1f1f1f;
+        border-color: #444;
+        border-left-color: #667eea;
+        color: #a8d8ea;
+    }
+
     .paper-chunk footer.provenance {
         border-top-color: #444;
     }
@@ -821,3 +872,11 @@ body.papermind-enhanced-mode .papermind-original {
     height: 32px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.prompt-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}

@@ -67,7 +67,7 @@
                 "panel.html",
                 "panel.js",
                 "panel.css",
-                "dist/Logo.png"
+                "logo/logo.png"
             ],
             "matches": [
                 "<all_urls>"
@@ -75,8 +75,8 @@
         }
     ],
     "icons": {
-        "16": "dist/Logo.png",
-        "48": "dist/Logo.png",
-        "128": "dist/Logo.png"
+        "16": "logo/logo.png",
+        "48": "logo/logo.png",
+        "128": "logo/logo.png"
     }
 }

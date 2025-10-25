@@ -66,7 +66,7 @@ class PaperMind {
         button.id = 'papermind-button';
         button.className = 'papermind-button-compact';
         button.innerHTML = `
-            <img src="${chrome.runtime.getURL('dist/Logo.png')}" alt="PaperMind" class="papermind-logo">
+            <img src="${chrome.runtime.getURL('logo/logo.png')}" alt="PaperMind" class="papermind-logo">
         `;
 
         // Create the expandable panel (initially hidden)
@@ -76,7 +76,7 @@ class PaperMind {
         panel.innerHTML = `
             <div class="panel-header">
                 <div class="panel-title">
-                    <img src="${chrome.runtime.getURL('dist/Logo.png')}" alt="PaperMind Logo" class="panel-logo">
+                    <img src="${chrome.runtime.getURL('logo/logo.png')}" alt="PaperMind Logo" class="panel-logo">
                     <span class="panel-title-text">PaperMind</span>
                 </div>
                 <div class="panel-header-controls">
