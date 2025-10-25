@@ -66,7 +66,7 @@ class PaperMind {
         button.id = 'papermind-button';
         button.className = 'papermind-button-compact';
         button.innerHTML = `
-            <div class="papermind-text">PaperMind</div>
+            <img src="${chrome.runtime.getURL('dist/Logo.png')}" alt="PaperMind" class="papermind-logo">
         `;
 
         // Create the expandable panel (initially hidden)
@@ -76,6 +76,7 @@ class PaperMind {
         panel.innerHTML = `
             <div class="panel-header">
                 <div class="panel-title">
+                    <img src="${chrome.runtime.getURL('dist/Logo.png')}" alt="PaperMind Logo" class="panel-logo">
                     <span class="panel-title-text">PaperMind</span>
                 </div>
                 <div class="panel-header-controls">
@@ -190,9 +191,9 @@ class PaperMind {
 
             hoverTimeout = setTimeout(() => {
                 if (!isPinned && !this.isAnalyzing) {
-                panel.classList.add('hidden');
-                button.classList.remove('hidden');
-            }
+                    panel.classList.add('hidden');
+                    button.classList.remove('hidden');
+                }
             }, 50);
         });
 
@@ -271,8 +272,8 @@ class PaperMind {
 
             initialX = e.clientX - xOffset;
             initialY = e.clientY - yOffset;
-                isDragging = true;
-                element.style.transition = 'none';
+            isDragging = true;
+            element.style.transition = 'none';
         }
 
         function drag(e) {
@@ -954,8 +955,8 @@ Format as structured sections with clear headings.`;
 
         document.addEventListener('mouseup', () => {
             if (isDragging) {
-            isDragging = false;
-            header.style.cursor = 'grab';
+                isDragging = false;
+                header.style.cursor = 'grab';
                 panel.style.transition = ''; // Re-enable animations
             }
         });
@@ -1243,13 +1244,13 @@ Provide a focused answer to the follow-up question, building on the previous exp
         });
 
         // Delete button
-            notesList.querySelectorAll('.note-delete').forEach(btn => {
-                btn.addEventListener('click', (e) => {
+        notesList.querySelectorAll('.note-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                    const index = parseInt(e.target.dataset.index);
-                    this.deleteStudyNote(index);
-                });
+                const index = parseInt(e.target.dataset.index);
+                this.deleteStudyNote(index);
             });
+        });
     }
 
     async updateStudyNote(index, updates) {
@@ -1604,17 +1605,17 @@ Provide a focused answer to the follow-up question, building on the previous exp
         try {
             // Combine all paper text for summarization
             let fullText = '';
-            
+
             // Add title
             if (this.paperData.title) {
                 fullText += `Title: ${this.paperData.title}\n\n`;
             }
-            
+
             // Add abstract
             if (this.paperData.abstract && this.paperData.abstract.text) {
                 fullText += `Abstract: ${this.paperData.abstract.text}\n\n`;
             }
-            
+
             // Add sections
             if (this.paperData.sections && this.paperData.sections.length > 0) {
                 this.paperData.sections.forEach(section => {
@@ -1637,8 +1638,8 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
             if (response && response.summary) {
                 // Ensure summary is a string
-                const summaryText = typeof response.summary === 'string' 
-                    ? response.summary 
+                const summaryText = typeof response.summary === 'string'
+                    ? response.summary
                     : JSON.stringify(response.summary, null, 2);
 
                 console.log('PaperMind: Summary text type:', typeof summaryText, 'Content:', summaryText.substring(0, 200));
@@ -1719,7 +1720,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
         }
 
         document.body.appendChild(overlay);
-        
+
         // Make the panel draggable
         this.makePanelDraggable(overlay);
 
@@ -1806,11 +1807,11 @@ Provide a focused answer to the follow-up question, building on the previous exp
         // Make the header area draggable
         const responseContent = panel.querySelector('.response-content');
         const header = responseContent ? responseContent.querySelector('h4') : null;
-        
+
         if (header) {
             header.style.cursor = 'move';
             header.style.userSelect = 'none';
-            
+
             header.addEventListener('mousedown', dragStart);
         }
 
@@ -1819,7 +1820,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
         function dragStart(e) {
             if (e.button !== 0) return;
-            
+
             initialX = e.clientX - xOffset;
             initialY = e.clientY - yOffset;
             isDragging = true;
@@ -1858,7 +1859,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
         // Convert newlines to paragraphs
         const paragraphs = textStr.split('\n').filter(p => p.trim().length > 0);
-        
+
         return paragraphs.map(para => {
             // Check if it's a bullet point or numbered list
             if (para.trim().match(/^[\-\*•]\s+/) || para.trim().match(/^\d+\.\s+/)) {
@@ -2035,7 +2036,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
             toggleButton.textContent = 'Original';
             toggleButton.title = 'Toggle between enhanced and original view';
             toggleButton.setAttribute('data-section-index', i);
-            
+
             // Add toggle functionality
             toggleButton.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2046,7 +2047,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
             const enhancedHeader = enhancedWrapper.querySelector('header');
             const enhancedTitle = enhancedHeader ? enhancedHeader.querySelector('h3, h2, h1') : null;
             const originalTitle = originalWrapper.querySelector('h2, h3, h1');
-            
+
             if (enhancedTitle && enhancedHeader) {
                 // Create a wrapper div for title and button
                 const titleWrapper = document.createElement('div');
@@ -2055,21 +2056,21 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 titleWrapper.style.alignItems = 'center';
                 titleWrapper.style.gap = '8px';
                 titleWrapper.style.flexWrap = 'nowrap';
-                
+
                 // Clone the button for enhanced view
                 const enhancedButton = toggleButton.cloneNode(true);
                 enhancedButton.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.toggleSectionView(section, enhancedButton);
                 });
-                
+
                 // Replace header with wrapped version
                 enhancedHeader.innerHTML = '';
                 titleWrapper.appendChild(enhancedTitle);
                 titleWrapper.appendChild(enhancedButton);
                 enhancedHeader.appendChild(titleWrapper);
             }
-            
+
             if (originalTitle) {
                 // Find or create header for original content
                 let originalHeader = originalTitle.closest('header');
@@ -2080,7 +2081,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
                     originalTitle.parentNode.insertBefore(originalHeader, originalTitle);
                     originalHeader.appendChild(originalTitle);
                 }
-                
+
                 // Create a wrapper div for title and button
                 const titleWrapper = document.createElement('div');
                 titleWrapper.className = 'papermind-title-wrapper';
@@ -2088,14 +2089,14 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 titleWrapper.style.alignItems = 'center';
                 titleWrapper.style.gap = '8px';
                 titleWrapper.style.flexWrap = 'nowrap';
-                
+
                 // Clone the button for original view
                 const originalButton = toggleButton.cloneNode(true);
                 originalButton.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.toggleSectionView(section, originalButton);
                 });
-                
+
                 // Replace header with wrapped version
                 originalHeader.innerHTML = '';
                 titleWrapper.appendChild(originalTitle);
@@ -2119,7 +2120,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
         const currentMode = section.getAttribute('data-view-mode') || 'enhanced';
         const originalContent = section.querySelector('.papermind-original-content');
         const enhancedContent = section.querySelector('.papermind-enhanced-content');
-        
+
         // Find all toggle buttons in this section (one in enhanced, one in original)
         const allButtons = section.querySelectorAll('.papermind-section-toggle');
 
@@ -2128,7 +2129,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
             if (originalContent) originalContent.style.display = 'block';
             if (enhancedContent) enhancedContent.style.display = 'none';
             section.setAttribute('data-view-mode', 'original');
-            
+
             // Update all buttons in this section
             allButtons.forEach(btn => {
                 btn.textContent = 'Enhanced';
@@ -2139,7 +2140,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
             if (originalContent) originalContent.style.display = 'none';
             if (enhancedContent) enhancedContent.style.display = 'block';
             section.setAttribute('data-view-mode', 'enhanced');
-            
+
             // Update all buttons in this section
             allButtons.forEach(btn => {
                 btn.textContent = 'Original';

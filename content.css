@@ -35,6 +35,12 @@
     display: none;
 }
 
+.papermind-logo {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
 .papermind-icon {
     font-size: 14px;
     font-weight: 700;
@@ -84,6 +90,12 @@
     gap: 8px;
     font-size: 15px;
     font-weight: 600;
+}
+
+.panel-logo {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
 }
 
 .papermind-expandable-panel .panel-icon {
