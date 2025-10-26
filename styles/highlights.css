@@ -100,15 +100,14 @@
    =============================================== */
 
 .papermind-knowledge-panel {
-    position: fixed;
-    right: 20px;
-    top: 100px;
+    position: absolute;
+    /* Position will be set dynamically near selection */
     width: 400px;
     max-height: calc(100vh - 140px);
     background: white;
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-    z-index: 9999;
+    z-index: 10003;
     display: flex;
     flex-direction: column;
     animation: slideInRight 0.3s ease-out;
@@ -617,7 +616,7 @@
 
 .papermind-explanation-popup {
     position: absolute;
-    z-index: 10000;
+    z-index: 10004; /* ensure above search bar, below overlays */
     max-width: 500px;
     animation: popIn 0.3s ease;
 }

@@ -766,12 +766,63 @@ class PaperMind {
             </div>
         `;
 
-        // Position near selection
-        searchBar.style.position = 'absolute';
-        searchBar.style.left = `${this.selectionRect.left + window.scrollX}px`;
-        searchBar.style.top = `${this.selectionRect.bottom + window.scrollY + 8}px`;
-
         document.body.appendChild(searchBar);
+
+        // Helper: position near current selection with viewport clamping
+        const positionNearSelection = () => {
+            const currentRect = this.selectionRange
+                ? this.selectionRange.getBoundingClientRect()
+                : this.selectionRect;
+            if (!currentRect) return;
+
+            const barRect = searchBar.getBoundingClientRect();
+
+            let left = currentRect.left + window.scrollX;
+            let top = currentRect.bottom + window.scrollY + 8; // default below selection
+
+            // Clamp horizontally within viewport with 8px margin
+            const minLeft = window.scrollX + 8;
+            const maxLeft = window.scrollX + window.innerWidth - barRect.width - 8;
+            left = Math.min(Math.max(left, minLeft), Math.max(minLeft, maxLeft));
+
+            // If overflowing bottom, place above selection
+            const bottom = top + barRect.height;
+            const viewportBottom = window.scrollY + window.innerHeight - 8;
+            if (bottom > viewportBottom) {
+                top = currentRect.top + window.scrollY - barRect.height - 8;
+            }
+            // Clamp vertically to viewport
+            const minTop = window.scrollY + 8;
+            const maxTop = window.scrollY + window.innerHeight - barRect.height - 8;
+            top = Math.min(Math.max(top, minTop), Math.max(minTop, maxTop));
+
+            searchBar.style.position = 'absolute';
+            searchBar.style.left = left + 'px';
+            searchBar.style.top = top + 'px';
+        };
+
+        // Initial position
+        positionNearSelection();
+
+        // Track scroll/resize to keep attached to selection
+        const repositionHandler = () => {
+            // If selection collapsed, do nothing; keep last known rect
+            positionNearSelection();
+        };
+        window.addEventListener('scroll', repositionHandler, true);
+        window.addEventListener('resize', repositionHandler);
+
+        const cleanupPositioning = () => {
+            window.removeEventListener('scroll', repositionHandler, true);
+            window.removeEventListener('resize', repositionHandler);
+        };
+
+        const removeBar = () => {
+            cleanupPositioning();
+            if (searchBar && searchBar.parentNode) searchBar.remove();
+            // Clear the stored range when done
+            this.selectionRange = null;
+        };
 
         const input = searchBar.querySelector('#search-input');
         const quickBtn = searchBar.querySelector('#quick-search-btn');
@@ -781,7 +832,7 @@ class PaperMind {
         // Quick search button (default explanation)
         quickBtn.addEventListener('click', () => {
             this.generateExplanation('default', '');
-            searchBar.remove();
+            removeBar();
         });
 
         // Translate button - show language selector
@@ -802,7 +853,7 @@ class PaperMind {
                     this.showKnowledgePanel('empty');
                 }
             }
-            searchBar.remove();
+            removeBar();
         });
 
         // Submit custom question
@@ -813,7 +864,7 @@ class PaperMind {
             } else {
                 this.generateExplanation('default', '');
             }
-            searchBar.remove();
+            removeBar();
         };
 
         submitBtn.addEventListener('click', handleSubmit);
@@ -847,9 +898,7 @@ class PaperMind {
         setTimeout(() => {
             document.addEventListener('click', (e) => {
                 if (!searchBar.contains(e.target)) {
-                    searchBar.remove();
-                    // Clear the stored range when done
-                    this.selectionRange = null;
+                    removeBar();
                 }
             }, { once: true });
         }, 100);
@@ -936,6 +985,7 @@ Format as structured sections with clear headings.`;
 
     showKnowledgePanel(state, data = {}) {
         let panel = document.querySelector('.papermind-knowledge-panel');
+        const isNewPanel = !panel;
 
         if (!panel) {
             panel = document.createElement('div');
@@ -972,6 +1022,9 @@ Format as structured sections with clear headings.`;
                 minimizeBtn.textContent = isMinimized ? '+' : '−';
                 minimizeBtn.title = isMinimized ? 'Expand' : 'Minimize';
             });
+
+            // Position near selection on first show
+            this.positionKnowledgePanelNearSelection(panel);
         }
 
         const contentDiv = panel.querySelector('.panel-content');
@@ -1053,6 +1106,57 @@ Format as structured sections with clear headings.`;
         // Show and position panel
         panel.classList.remove('minimized');
         panel.style.display = 'flex';
+    }
+
+    positionKnowledgePanelNearSelection(panel) {
+        // Get selection rect
+        const rect = this.selectionRange
+            ? this.selectionRange.getBoundingClientRect()
+            : this.selectionRect;
+        
+        if (!rect) {
+            // Fallback to default position if no selection
+            panel.style.position = 'fixed';
+            panel.style.right = '20px';
+            panel.style.top = '100px';
+            panel.style.left = 'auto';
+            return;
+        }
+
+        // Wait for panel to render to get dimensions
+        requestAnimationFrame(() => {
+            const panelRect = panel.getBoundingClientRect();
+            
+            // Try to position to the right of selection
+            let left = rect.right + window.scrollX + 16;
+            let top = rect.top + window.scrollY;
+
+            // Check if it fits on the right
+            if (left + panelRect.width > window.scrollX + window.innerWidth - 16) {
+                // Try left side
+                left = rect.left + window.scrollX - panelRect.width - 16;
+                
+                // If still doesn't fit, position below
+                if (left < window.scrollX + 16) {
+                    left = rect.left + window.scrollX;
+                    top = rect.bottom + window.scrollY + 16;
+                    
+                    // Clamp horizontally
+                    const maxLeft = window.scrollX + window.innerWidth - panelRect.width - 16;
+                    left = Math.min(Math.max(left, window.scrollX + 16), maxLeft);
+                }
+            }
+
+            // Clamp vertically
+            const maxTop = window.scrollY + window.innerHeight - panelRect.height - 16;
+            top = Math.min(Math.max(top, window.scrollY + 16), maxTop);
+
+            // Apply absolute positioning near selection
+            panel.style.position = 'absolute';
+            panel.style.left = left + 'px';
+            panel.style.top = top + 'px';
+            panel.style.right = 'auto';
+        });
     }
 
     makeKnowledgePanelDraggable(panel) {

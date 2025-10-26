@@ -190,12 +190,39 @@ class PaperMindHighlights {
         const popup = document.createElement('div');
         popup.className = 'papermind-explanation-popup';
 
-        const rect = this.paperMind.selectionRect;
-        if (rect) {
+        const positionNearSelection = () => {
+            const rect = this.paperMind.selectionRange
+                ? this.paperMind.selectionRange.getBoundingClientRect()
+                : this.paperMind.selectionRect;
+            if (!rect) return;
+
+            // Ensure in DOM to measure
+            if (!popup.parentNode) document.body.appendChild(popup);
+            const popupRect = popup.getBoundingClientRect();
+
+            let left = rect.left + window.scrollX;
+            let top = rect.bottom + window.scrollY + 10; // prefer below selection
+
+            // Horizontal clamp with 8px margin
+            const minLeft = window.scrollX + 8;
+            const maxLeft = window.scrollX + window.innerWidth - popupRect.width - 8;
+            left = Math.min(Math.max(left, minLeft), Math.max(minLeft, maxLeft));
+
+            // If bottom overflows, flip above
+            const bottom = top + popupRect.height;
+            const viewportBottom = window.scrollY + window.innerHeight - 8;
+            if (bottom > viewportBottom) {
+                top = rect.top + window.scrollY - popupRect.height - 10;
+            }
+            // Vertical clamp
+            const minTop = window.scrollY + 8;
+            const maxTop = window.scrollY + window.innerHeight - popupRect.height - 8;
+            top = Math.min(Math.max(top, minTop), Math.max(minTop, maxTop));
+
             popup.style.position = 'absolute';
-            popup.style.left = `${rect.left + window.scrollX}px`;
-            popup.style.top = `${rect.bottom + window.scrollY + 10}px`;
-        }
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
+        };
 
         if (type === 'loading') {
             popup.innerHTML = `
@@ -219,19 +246,34 @@ class PaperMindHighlights {
                 </div>
             `;
 
-            popup.querySelector('.explanation-close').addEventListener('click', () => popup.remove());
+            const cleanupPositioning = () => {
+                window.removeEventListener('scroll', positionNearSelection, true);
+                window.removeEventListener('resize', positionNearSelection);
+            };
+
+            const closeAndCleanup = () => {
+                cleanupPositioning();
+                popup.remove();
+            };
+
+            popup.querySelector('.explanation-close').addEventListener('click', closeAndCleanup);
             popup.querySelector('.explanation-follow-up').addEventListener('click', () => {
                 this.showFollowUpDialog(content);
             });
 
             setTimeout(() => {
                 document.addEventListener('click', (e) => {
-                    if (!popup.contains(e.target)) popup.remove();
+                    if (!popup.contains(e.target)) closeAndCleanup();
                 }, { once: true });
             }, 100);
         }
 
         document.body.appendChild(popup);
+        // Initial position and listeners
+        positionNearSelection();
+        window.addEventListener('scroll', positionNearSelection, true);
+        window.addEventListener('resize', positionNearSelection);
+
         return popup;
     }
 
