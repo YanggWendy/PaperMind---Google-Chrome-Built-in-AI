@@ -21,6 +21,7 @@ class PaperMindPopup {
             const result = await chrome.storage.sync.get([
                 'autoAnalyze',
                 'highlightMode',
+                'adhdMode',
                 'aiModel',
                 'language'
             ]);
@@ -28,6 +29,7 @@ class PaperMindPopup {
             this.settings = {
                 autoAnalyze: result.autoAnalyze !== false,
                 highlightMode: result.highlightMode || false,
+                adhdMode: result.adhdMode || false,
                 aiModel: result.aiModel || 'gemini-nano',
                 language: result.language || 'en'
             };
@@ -36,8 +38,7 @@ class PaperMindPopup {
             this.settings = {
                 autoAnalyze: true,
                 highlightMode: false,
-                aiModel: 'gemini-nano',
-                language: 'en'
+                adhdMode: false
             };
         }
     }
@@ -280,6 +281,7 @@ class PaperMindPopup {
     populateSettingsForm() {
         document.getElementById('auto-analyze').checked = this.settings.autoAnalyze;
         document.getElementById('highlight-mode').checked = this.settings.highlightMode;
+        document.getElementById('adhd-mode').checked = this.settings.adhdMode;
         document.getElementById('ai-model-select').value = this.settings.aiModel;
         document.getElementById('language-select').value = this.settings.language;
     }
@@ -288,6 +290,7 @@ class PaperMindPopup {
         const newSettings = {
             autoAnalyze: document.getElementById('auto-analyze').checked,
             highlightMode: document.getElementById('highlight-mode').checked,
+            adhdMode: document.getElementById('adhd-mode').checked,
             aiModel: document.getElementById('ai-model-select').value,
             language: document.getElementById('language-select').value
         };

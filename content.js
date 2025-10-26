@@ -16,6 +16,15 @@ class PaperMind {
         this.paperData = null;
         this.summaryPanel = null;
         this.highlightedText = '';
+        this.adhdMode = false;
+        this.adhdState = {
+            currentSectionIndex: 0,
+            completedSections: [],
+            startTime: null,
+            sectionStartTime: null,
+            totalReadingTime: 0,
+            sectionsData: []
+        };
         this.init();
     }
 
@@ -308,7 +317,7 @@ class PaperMind {
         // Translation controls
         const translateBtn = panel.querySelector('#translate-btn');
         const languageDropdown = panel.querySelector('#language-select-dropdown');
-        
+
         translateBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             languageDropdown.classList.toggle('hidden');
@@ -2024,6 +2033,11 @@ Provide a focused answer to the follow-up question, building on the previous exp
             console.log('🚀 PaperMind: Starting analysis with pre-extracted content');
         }
 
+        // Check if ADHD mode is enabled
+        const settings = await chrome.storage.sync.get(['adhdMode']);
+        this.adhdMode = settings.adhdMode || false;
+        console.log('PaperMind: ADHD mode:', this.adhdMode ? 'ENABLED' : 'DISABLED');
+
         // Set analyzing flag
         this.isAnalyzing = true;
 
@@ -2067,11 +2081,20 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 this.originalAnalysisHtml = response.summary;
                 this.currentAnalysisHtml = response.summary;
 
-                // Check if it's the new HTML array format or old object format
-                if (Array.isArray(response.summary)) {
+                // Check if ADHD mode is enabled
+                if (this.adhdMode && Array.isArray(response.summary)) {
+                    // First, render the enhanced paper in the background (like normal mode)
                     this.renderEnhancedPaper(response.summary);
+                    // Then, show the ADHD focus mode overlay on top
+                    this.renderADHDMode(response.summary);
                 } else {
-                    this.displaySummary(response.summary);
+                    // Use normal rendering
+                    // Check if it's the new HTML array format or old object format
+                    if (Array.isArray(response.summary)) {
+                        this.renderEnhancedPaper(response.summary);
+                    } else {
+                        this.displaySummary(response.summary);
+                    }
                 }
 
                 // Hide progress section and show analyze button
@@ -2164,7 +2187,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
             // Parse markdown syntax in the HTML
             const parsedHtml = this.parseMarkdownInHtml(html);
-            
+
             // Debug: Log a sample of the HTML to check for escaping issues
             const mathSample = parsedHtml.match(/\\[\[\(][\s\S]{0,100}/);
             if (mathSample) {
@@ -2283,7 +2306,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
         // Trigger MathJax typesetting on the container
         if (window.MathJax) {
             console.log('PaperMind: Triggering MathJax typesetting...');
-            
+
             // Check if typesetPromise is available
             if (window.MathJax.typesetPromise) {
                 window.MathJax.typesetPromise([container])
@@ -2307,6 +2330,367 @@ Provide a focused answer to the follow-up question, building on the previous exp
         } else {
             console.warn('PaperMind: MathJax not loaded, math equations will not render');
         }
+    }
+
+    renderADHDMode(htmlSections) {
+        console.log('PaperMind: Rendering ADHD mode with', htmlSections.length, 'sections');
+
+        // Store sections data for ADHD mode
+        this.adhdState.sectionsData = htmlSections;
+        this.adhdState.currentSectionIndex = 0;
+        this.adhdState.completedSections = [];
+        this.adhdState.startTime = Date.now();
+        this.adhdState.totalReadingTime = 0;
+
+        // Find the article element
+        const article = this.extractArticle();
+        if (!article) {
+            console.error('PaperMind: Cannot find article element to render ADHD mode');
+            return;
+        }
+
+        // Create ADHD mode overlay panel
+        this.createADHDPanel(article);
+
+        // Show first section
+        this.showADHDSection(0);
+    }
+
+    createADHDPanel(article) {
+        // Remove existing ADHD panel if any
+        const existing = document.getElementById('papermind-adhd-panel');
+        if (existing) {
+            existing.remove();
+        }
+
+        // Create overlay panel
+        const panel = document.createElement('div');
+        panel.id = 'papermind-adhd-panel';
+        panel.className = 'papermind-adhd-panel';
+        panel.innerHTML = `
+            <div class="adhd-panel-header">
+                <div class="adhd-header-left">
+                    <img src="${chrome.runtime.getURL('logo/logo.png')}" alt="PaperMind Logo" class="adhd-logo">
+                    <h2>Focus Mode</h2>
+                    <button class="adhd-close-btn" id="adhd-close-btn" title="Exit Focus Mode">✕</button>
+                </div>
+                <div class="adhd-timer" id="adhd-timer">
+                    <span class="timer-icon">⏱️</span>
+                    <span class="timer-text">00:00</span>
+                </div>
+            </div>
+            <div class="adhd-progress-container">
+                <div class="adhd-progress-bar">
+                    <div class="adhd-progress-fill" id="adhd-progress-fill"></div>
+                </div>
+                <div class="adhd-progress-text" id="adhd-progress-text">Section 1 of ${this.adhdState.sectionsData.length}</div>
+            </div>
+            <div class="adhd-section-content" id="adhd-section-content">
+                <!-- Section content will be inserted here -->
+            </div>
+            <div class="adhd-section-controls">
+                <label class="adhd-checkbox-container">
+                    <input type="checkbox" id="adhd-section-checkbox">
+                    <span class="adhd-checkbox-label">I've finished reading this section</span>
+                </label>
+                <div class="adhd-button-group">
+                    <button class="adhd-btn adhd-btn-prev" id="adhd-prev-btn" disabled>← Previous</button>
+                    <button class="adhd-btn adhd-btn-next" id="adhd-next-btn" disabled>Next →</button>
+                </div>
+            </div>
+            <div class="adhd-encouragement" id="adhd-encouragement"></div>
+        `;
+
+        document.body.appendChild(panel);
+
+        // Setup event listeners
+        this.setupADHDEventListeners();
+
+        // Start timer
+        this.startADHDTimer();
+    }
+
+    setupADHDEventListeners() {
+        const closeBtn = document.getElementById('adhd-close-btn');
+        const checkbox = document.getElementById('adhd-section-checkbox');
+        const nextBtn = document.getElementById('adhd-next-btn');
+        const prevBtn = document.getElementById('adhd-prev-btn');
+
+        closeBtn.addEventListener('click', () => {
+            this.exitADHDMode();
+        });
+
+        checkbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                nextBtn.disabled = false;
+                this.markSectionComplete(this.adhdState.currentSectionIndex);
+            } else {
+                nextBtn.disabled = true;
+                this.unmarkSectionComplete(this.adhdState.currentSectionIndex);
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            this.showNextADHDSection();
+        });
+
+        prevBtn.addEventListener('click', () => {
+            this.showPrevADHDSection();
+        });
+    }
+
+    startADHDTimer() {
+        this.adhdState.sectionStartTime = Date.now();
+
+        // Update timer every second
+        if (this.adhdTimerInterval) {
+            clearInterval(this.adhdTimerInterval);
+        }
+
+        this.adhdTimerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - this.adhdState.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            const timerText = document.querySelector('.timer-text');
+            if (timerText) {
+                timerText.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+        }, 1000);
+    }
+
+    showADHDSection(index) {
+        if (index < 0 || index >= this.adhdState.sectionsData.length) {
+            return;
+        }
+
+        this.adhdState.currentSectionIndex = index;
+        const sectionHtml = this.adhdState.sectionsData[index];
+
+        // Update section content
+        const contentDiv = document.getElementById('adhd-section-content');
+        if (contentDiv) {
+            const parsedHtml = this.parseMarkdownInHtml(sectionHtml);
+            contentDiv.innerHTML = parsedHtml;
+
+            // Trigger MathJax rendering if available
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([contentDiv]).catch((err) => {
+                    console.error('MathJax rendering error:', err);
+                });
+            }
+
+            // Scroll to top of content
+            contentDiv.scrollTop = 0;
+        }
+
+        // Update progress bar
+        const progress = ((index + 1) / this.adhdState.sectionsData.length) * 100;
+        const progressFill = document.getElementById('adhd-progress-fill');
+        if (progressFill) {
+            progressFill.style.width = `${progress}%`;
+        }
+
+        // Update progress text
+        const progressText = document.getElementById('adhd-progress-text');
+        if (progressText) {
+            progressText.textContent = `Section ${index + 1} of ${this.adhdState.sectionsData.length}`;
+        }
+
+        // Update checkbox state
+        const checkbox = document.getElementById('adhd-section-checkbox');
+        if (checkbox) {
+            checkbox.checked = this.adhdState.completedSections.includes(index);
+        }
+
+        // Update button states
+        const prevBtn = document.getElementById('adhd-prev-btn');
+        const nextBtn = document.getElementById('adhd-next-btn');
+        if (prevBtn) {
+            prevBtn.disabled = index === 0;
+        }
+        if (nextBtn) {
+            nextBtn.disabled = !this.adhdState.completedSections.includes(index);
+        }
+
+        // Clear previous encouragement
+        const encouragement = document.getElementById('adhd-encouragement');
+        if (encouragement) {
+            encouragement.textContent = '';
+            encouragement.classList.remove('show');
+        }
+
+        // Record section start time
+        this.adhdState.sectionStartTime = Date.now();
+    }
+
+    showNextADHDSection() {
+        const nextIndex = this.adhdState.currentSectionIndex + 1;
+        if (nextIndex >= this.adhdState.sectionsData.length) {
+            // All sections completed!
+            this.showADHDCompletion();
+            return;
+        }
+        this.showADHDSection(nextIndex);
+    }
+
+    showPrevADHDSection() {
+        const prevIndex = this.adhdState.currentSectionIndex - 1;
+        if (prevIndex >= 0) {
+            this.showADHDSection(prevIndex);
+        }
+    }
+
+    markSectionComplete(index) {
+        if (!this.adhdState.completedSections.includes(index)) {
+            this.adhdState.completedSections.push(index);
+
+            // Calculate reading time for this section
+            const sectionTime = Math.floor((Date.now() - this.adhdState.sectionStartTime) / 1000);
+            this.adhdState.totalReadingTime += sectionTime;
+
+            // Show encouragement
+            this.showEncouragement(index, sectionTime);
+        }
+    }
+
+    unmarkSectionComplete(index) {
+        const idx = this.adhdState.completedSections.indexOf(index);
+        if (idx > -1) {
+            this.adhdState.completedSections.splice(idx, 1);
+        }
+    }
+
+    showEncouragement(sectionIndex, readingTime) {
+        const encouragements = [
+            "Great job! 🎉 Keep up the excellent work!",
+            "Awesome! 🌟 You're making great progress!",
+            "Well done! 💪 You're doing amazing!",
+            "Fantastic! 🚀 Keep going, you've got this!",
+            "Excellent! ✨ You're on a roll!",
+            "Nice work! 👏 Stay focused!",
+            "Brilliant! 🎯 You're crushing it!",
+            "Amazing! 🔥 Keep that momentum going!"
+        ];
+
+        const encouragement = document.getElementById('adhd-encouragement');
+        if (encouragement) {
+            const randomMsg = encouragements[Math.floor(Math.random() * encouragements.length)];
+            const minutes = Math.floor(readingTime / 60);
+            const seconds = readingTime % 60;
+            let timeMsg = '';
+            if (minutes > 0) {
+                timeMsg = ` (${minutes}m ${seconds}s)`;
+            } else {
+                timeMsg = ` (${seconds}s)`;
+            }
+
+            encouragement.textContent = randomMsg + timeMsg;
+            encouragement.classList.add('show');
+
+            // Hide after 3 seconds
+            setTimeout(() => {
+                encouragement.classList.remove('show');
+            }, 3000);
+        }
+    }
+
+    showADHDCompletion() {
+        const panel = document.getElementById('papermind-adhd-panel');
+        if (!panel) return;
+
+        const totalTime = Math.floor((Date.now() - this.adhdState.startTime) / 1000);
+        const minutes = Math.floor(totalTime / 60);
+        const seconds = totalTime % 60;
+
+        const contentDiv = document.getElementById('adhd-section-content');
+        if (contentDiv) {
+            contentDiv.innerHTML = `
+                <div class="adhd-completion">
+                    <h2>🎊 Congratulations!</h2>
+                    <p class="completion-message">You've completed all sections of the paper!</p>
+                    <div class="completion-stats">
+                        <div class="stat-item">
+                            <span class="stat-icon">📖</span>
+                            <span class="stat-value">${this.adhdState.sectionsData.length}</span>
+                            <span class="stat-label">Sections Read</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">⏱️</span>
+                            <span class="stat-value">${minutes}m ${seconds}s</span>
+                            <span class="stat-label">Total Time</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">✅</span>
+                            <span class="stat-value">100%</span>
+                            <span class="stat-label">Completed</span>
+                        </div>
+                    </div>
+                    <button class="adhd-btn adhd-btn-primary" id="adhd-finish-btn">Finish & Return</button>
+                </div>
+            `;
+
+            const finishBtn = document.getElementById('adhd-finish-btn');
+            if (finishBtn) {
+                finishBtn.addEventListener('click', () => {
+                    this.exitADHDMode();
+                });
+            }
+        }
+
+        // Hide controls
+        const controls = document.querySelector('.adhd-section-controls');
+        if (controls) {
+            controls.style.display = 'none';
+        }
+
+        // Update progress to 100%
+        const progressFill = document.getElementById('adhd-progress-fill');
+        if (progressFill) {
+            progressFill.style.width = '100%';
+        }
+    }
+
+    exitADHDMode() {
+        // Clear timer interval
+        if (this.adhdTimerInterval) {
+            clearInterval(this.adhdTimerInterval);
+            this.adhdTimerInterval = null;
+        }
+
+        // Remove ADHD panel
+        const panel = document.getElementById('papermind-adhd-panel');
+        if (panel) {
+            panel.remove();
+        }
+
+        // Show notification with stats
+        const totalTime = Math.floor((Date.now() - this.adhdState.startTime) / 1000);
+        const minutes = Math.floor(totalTime / 60);
+        const seconds = totalTime % 60;
+        const completedCount = this.adhdState.completedSections.length;
+        const totalCount = this.adhdState.sectionsData.length;
+
+        if (completedCount === totalCount) {
+            this.showNotification(
+                `🎉 Focus Mode completed! All ${totalCount} sections read in ${minutes}m ${seconds}s. Now viewing the enhanced article.`,
+                'success'
+            );
+        } else {
+            this.showNotification(
+                `Focus Mode ended. Completed ${completedCount}/${totalCount} sections in ${minutes}m ${seconds}s. You can continue reading the enhanced article below.`,
+                'success'
+            );
+        }
+
+        // Reset ADHD state
+        this.adhdState = {
+            currentSectionIndex: 0,
+            completedSections: [],
+            startTime: null,
+            sectionStartTime: null,
+            totalReadingTime: 0,
+            sectionsData: []
+        };
     }
 
     toggleSectionView(section, button) {
@@ -2339,7 +2723,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 btn.textContent = 'Original';
                 btn.title = 'Switch to original view';
             });
-            
+
             // Re-render MathJax for the newly visible enhanced content
             setTimeout(() => {
                 this.renderMathJax(section);
@@ -2598,7 +2982,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
         try {
             // Show progress
             this.showNotification(`Translating analysis to ${this.getLanguageName(targetLanguage)}...`, 'info');
-            
+
             // Update progress section
             const progressSection = document.getElementById('progress-section');
             const progressMessage = document.getElementById('progress-message');
@@ -2628,17 +3012,17 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
             if (response && response.translatedAnalysis) {
                 console.log('PaperMind: Translated sections:', Array.isArray(response.translatedAnalysis) ? response.translatedAnalysis.length : 1);
-                
+
                 // Update the CURRENT display (but keep original unchanged!)
                 this.currentAnalysisHtml = response.translatedAnalysis;
-                
+
                 // Re-render with translated content
                 if (Array.isArray(response.translatedAnalysis)) {
                     console.log('PaperMind: Re-rendering enhanced paper with translated content...');
                     this.renderEnhancedPaper(response.translatedAnalysis);
                     console.log('PaperMind: Re-render complete!');
                 }
-                
+
                 // Hide progress
                 if (progressSection) {
                     progressSection.classList.add('hidden');
@@ -2655,7 +3039,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
         } catch (error) {
             console.error('PaperMind: Translation error:', error);
             this.showNotification(`Translation failed: ${error.message}`, 'error');
-            
+
             // Hide progress on error
             const progressSection = document.getElementById('progress-section');
             if (progressSection) {
