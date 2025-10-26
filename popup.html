@@ -49,10 +49,6 @@
 
             <div class="ai-status">
                 <div class="status-item">
-                    <span class="status-label">AI Model:</span>
-                    <span class="status-value" id="ai-model">Gemini Nano</span>
-                </div>
-                <div class="status-item">
                     <span class="status-label">Processing:</span>
                     <span class="status-value" id="processing-status">Ready</span>
                 </div>
@@ -98,14 +94,7 @@
                     </label>
                 </div>
                 <div class="setting-group">
-                    <label for="ai-model-select">AI Model:</label>
-                    <select id="ai-model-select">
-                        <option value="gemini-nano">Gemini Nano (Fast)</option>
-                        <option value="gemini-pro">Gemini Pro (Accurate)</option>
-                    </select>
-                </div>
-                <div class="setting-group">
-                    <label for="language-select">Default Language:</label>
+                    <label for="language-select">Analysis Language:</label>
                     <select id="language-select">
                         <option value="en">English</option>
                         <option value="es">Spanish (Español)</option>
@@ -120,6 +109,7 @@
                         <option value="ar">Arabic (العربية)</option>
                         <option value="hi">Hindi (हिन्दी)</option>
                     </select>
+                    <small class="setting-hint">Language of the paper (for translation feature)</small>
                 </div>
             </div>
             <div class="modal-footer">

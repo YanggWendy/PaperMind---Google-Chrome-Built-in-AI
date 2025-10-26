@@ -22,22 +22,20 @@ class PaperMindPopup {
                 'autoAnalyze',
                 'highlightMode',
                 'adhdMode',
-                'aiModel',
                 'language'
             ]);
 
             this.settings = {
                 autoAnalyze: result.autoAnalyze !== false,
-                highlightMode: result.highlightMode || false,
+                highlightMode: result.highlightMode !== false,
                 adhdMode: result.adhdMode || false,
-                aiModel: result.aiModel || 'gemini-nano',
                 language: result.language || 'en'
             };
         } catch (error) {
             console.error('Error loading settings:', error);
             this.settings = {
                 autoAnalyze: true,
-                highlightMode: false,
+                highlightMode: true,
                 adhdMode: false
             };
         }
@@ -157,7 +155,6 @@ class PaperMindPopup {
         this.updateStatus();
         this.updatePaperInfo();
         this.updateRecentPapers();
-        this.updateAISettings();
     }
 
     updateStatus() {
@@ -225,11 +222,6 @@ class PaperMindPopup {
         }
     }
 
-    updateAISettings() {
-        document.getElementById('ai-model').textContent =
-            this.settings.aiModel === 'gemini-nano' ? 'Gemini Nano' : 'Gemini Pro';
-    }
-
     async analyzeCurrentPaper() {
         if (!this.currentPaper) return;
 
@@ -282,7 +274,6 @@ class PaperMindPopup {
         document.getElementById('auto-analyze').checked = this.settings.autoAnalyze;
         document.getElementById('highlight-mode').checked = this.settings.highlightMode;
         document.getElementById('adhd-mode').checked = this.settings.adhdMode;
-        document.getElementById('ai-model-select').value = this.settings.aiModel;
         document.getElementById('language-select').value = this.settings.language;
     }
 
@@ -291,7 +282,6 @@ class PaperMindPopup {
             autoAnalyze: document.getElementById('auto-analyze').checked,
             highlightMode: document.getElementById('highlight-mode').checked,
             adhdMode: document.getElementById('adhd-mode').checked,
-            aiModel: document.getElementById('ai-model-select').value,
             language: document.getElementById('language-select').value
         };
 
@@ -300,7 +290,6 @@ class PaperMindPopup {
             this.settings = newSettings;
             this.hideSettings();
             this.showNotification('Settings saved successfully!', 'success');
-            this.updateAISettings();
         } catch (error) {
             console.error('Error saving settings:', error);
             this.showNotification('Failed to save settings. Please try again.', 'error');

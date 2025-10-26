@@ -893,8 +893,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
         // Set up default settings
         chrome.storage.sync.set({
-            autoAnalyze: true,
-            aiModel: 'gemini-nano'
+            autoAnalyze: true
         });
     }
 });
