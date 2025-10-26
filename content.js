@@ -752,9 +752,6 @@ class PaperMind {
                 <button class="search-icon-btn" id="quick-search-btn" title="Quick explanation">
                     <span class="search-icon">?</span>
                 </button>
-                <button class="search-icon-btn" id="translate-text-btn" title="Translate text">
-                    <span class="search-icon">🌐</span>
-                </button>
                 <input type="text" 
                        class="search-input" 
                        id="search-input" 
@@ -805,15 +802,20 @@ class PaperMind {
         positionNearSelection();
 
         // Track scroll/resize to keep attached to selection
+        let isRepositioning = false;
         const repositionHandler = () => {
-            // If selection collapsed, do nothing; keep last known rect
-            positionNearSelection();
+            if (isRepositioning) return;
+            isRepositioning = true;
+            requestAnimationFrame(() => {
+                positionNearSelection();
+                isRepositioning = false;
+            });
         };
-        window.addEventListener('scroll', repositionHandler, true);
-        window.addEventListener('resize', repositionHandler);
+        window.addEventListener('scroll', repositionHandler, { passive: true, capture: true });
+        window.addEventListener('resize', repositionHandler, { passive: true });
 
         const cleanupPositioning = () => {
-            window.removeEventListener('scroll', repositionHandler, true);
+            window.removeEventListener('scroll', repositionHandler, { capture: true });
             window.removeEventListener('resize', repositionHandler);
         };
 
@@ -826,38 +828,23 @@ class PaperMind {
 
         const input = searchBar.querySelector('#search-input');
         const quickBtn = searchBar.querySelector('#quick-search-btn');
-        const translateBtn = searchBar.querySelector('#translate-text-btn');
         const submitBtn = searchBar.querySelector('#search-submit-btn');
 
+        // Prevent clicks inside search bar from bubbling
+        searchBar.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
         // Quick search button (default explanation)
-        quickBtn.addEventListener('click', () => {
+        quickBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             this.generateExplanation('default', '');
             removeBar();
         });
 
-        // Translate button - show language selector
-        translateBtn.addEventListener('click', async () => {
-            const targetLanguage = await this.showLanguageSelector();
-            if (targetLanguage) {
-                try {
-                    this.showKnowledgePanel('loading');
-                    const translation = await this.translateHighlightedText(this.highlightedText, targetLanguage);
-                    if (translation) {
-                        this.showKnowledgePanel('result', {
-                            fullExplanation: `**Translation to ${this.getLanguageName(targetLanguage)}:**\n\n${translation}`,
-                            keyPoints: []
-                        });
-                    }
-                } catch (error) {
-                    this.showNotification('Translation failed. Please try again.', 'error');
-                    this.showKnowledgePanel('empty');
-                }
-            }
-            removeBar();
-        });
-
         // Submit custom question
-        const handleSubmit = () => {
+        const handleSubmit = (e) => {
+            if (e) e.stopPropagation();
             const question = input.value.trim();
             if (question) {
                 this.generateExplanation('custom', question);
@@ -869,7 +856,10 @@ class PaperMind {
 
         submitBtn.addEventListener('click', handleSubmit);
         input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleSubmit();
+            if (e.key === 'Enter') {
+                e.stopPropagation();
+                handleSubmit(e);
+            }
         });
 
         // Auto-focus input and restore selection
@@ -1066,14 +1056,16 @@ Format as structured sections with clear headings.`;
             `;
 
             // Setup action buttons
-            contentDiv.querySelector('.btn-followup').addEventListener('click', () => {
+            contentDiv.querySelector('.btn-followup').addEventListener('click', (e) => {
+                e.stopPropagation();
                 this.showFollowUpInPanel(panel, {
                     originalText: selectedText,
                     previousExplanation: fullExplanation
                 });
             });
 
-            contentDiv.querySelector('.btn-save-notes').addEventListener('click', () => {
+            contentDiv.querySelector('.btn-save-notes').addEventListener('click', (e) => {
+                e.stopPropagation();
                 const editableDiv = contentDiv.querySelector('#editable-key-points');
                 const editedKeyPoints = Array.from(editableDiv.querySelectorAll('.key-point'))
                     .map(el => el.textContent.replace(/^[•\-\*]\s*/, '').trim())
@@ -1092,6 +1084,13 @@ Format as structured sections with clear headings.`;
                 this.showNotification('Saved to study notes ✓', 'success');
                 this.loadStudyNotes(); // Refresh notes in main panel
             });
+
+            // Prevent content clicks from bubbling
+            const editableDiv = contentDiv.querySelector('#editable-key-points');
+            if (editableDiv) {
+                editableDiv.addEventListener('click', (e) => e.stopPropagation());
+                editableDiv.addEventListener('mousedown', (e) => e.stopPropagation());
+            }
 
         } else if (state === 'error') {
             contentDiv.innerHTML = `
@@ -1189,17 +1188,17 @@ Format as structured sections with clear headings.`;
 
             e.preventDefault();
 
-            // Calculate new position
-            let newX = e.clientX - offsetX;
-            let newY = e.clientY - offsetY;
+            // Calculate new position (accounting for absolute positioning with scroll)
+            let newX = e.clientX - offsetX + window.scrollX;
+            let newY = e.clientY - offsetY + window.scrollY;
 
             // Constrain to viewport
             const panelRect = panel.getBoundingClientRect();
-            const maxX = window.innerWidth - panelRect.width;
-            const maxY = window.innerHeight - panelRect.height;
+            const maxX = window.scrollX + window.innerWidth - panelRect.width;
+            const maxY = window.scrollY + window.innerHeight - panelRect.height;
 
-            newX = Math.max(0, Math.min(newX, maxX));
-            newY = Math.max(0, Math.min(newY, maxY));
+            newX = Math.max(window.scrollX, Math.min(newX, maxX));
+            newY = Math.max(window.scrollY, Math.min(newY, maxY));
 
             // Update position
             panel.style.right = 'auto';
