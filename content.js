@@ -691,6 +691,30 @@ class PaperMind {
             }
         });
 
+        // Listen for clicks on images in the paper
+        document.addEventListener('click', (e) => {
+            // Check if clicked element is an image (or inside a figure)
+            const img = e.target.closest('img');
+            const figure = e.target.closest('figure');
+
+            if (img && !e.target.closest('.papermind-container') && !e.target.closest('.papermind-dialog-overlay')) {
+                e.preventDefault();
+                this.showImageCaptureDialog(img, figure);
+                return;
+            }
+
+            // Check if clicked element is a table
+            const table = e.target.closest('table');
+            if (table && !e.target.closest('.papermind-container') && !e.target.closest('.papermind-dialog-overlay')) {
+                // Only capture tables that are part of the paper content, not our own UI tables
+                if (!table.classList.contains('note-table') && !table.classList.contains('note-table-editor')) {
+                    e.preventDefault();
+                    this.showTableCaptureDialog(table);
+                    return;
+                }
+            }
+        });
+
         // Listen for messages from background script
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request.action === 'analyzePaper') {
@@ -1191,12 +1215,14 @@ Provide a focused answer to the follow-up question, building on the previous exp
             const result = await chrome.storage.local.get(['studyNotes']);
             const studyNotes = result.studyNotes || [];
             console.log('📋 Loading notes. Total in storage:', studyNotes.length);
+            console.log('📋 All notes:', studyNotes);
 
             const notesList = document.getElementById('notes-list');
             if (!notesList) {
-                console.warn('⚠️ Notes list element not found');
+                console.warn('⚠️ Notes list element not found. PaperMind panel may not be visible yet.');
                 return;
             }
+            console.log('✅ Notes list element found');
 
             if (studyNotes.length === 0) {
                 notesList.innerHTML = '<p class="notes-empty">No notes yet. Highlight text and explain it to save notes.</p>';
@@ -1224,65 +1250,99 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 const hasKeyPoints = note.keyPoints && note.keyPoints.length > 0;
                 const isLongText = (note.selectedText || '').length > 60;
                 const isLongExplanation = (note.explanation || '').length > 150;
-                const needsExpand = isLongText || isLongExplanation || hasKeyPoints;
+                const hasAttachments = note.attachments && (note.attachments.images?.length > 0 || note.attachments.tables?.length > 0);
+                const needsExpand = isLongText || isLongExplanation || hasKeyPoints || hasAttachments;
 
-                return `
-                    <div class="note-item ${needsExpand ? 'expandable' : ''}" data-index="${index}">
-                        <div class="note-header">
-                            <span class="note-badge">${note.prompt}</span>
-                            <div class="note-actions">
-                                <button class="note-edit" data-index="${index}" title="Edit">
-                                    ✏️
-                                </button>
-                                <button class="note-delete" data-index="${index}" title="Delete">×</button>
-                        </div>
-                        </div>
-                        
-                        <!-- Preview Mode (Collapsed) -->
-                        <div class="note-preview">
-                        <div class="note-text">
-                                <strong>Selected:</strong> "${note.selectedText.substring(0, 60)}${isLongText ? '...' : ''}"
-                        </div>
-                            ${hasKeyPoints
-                        ? `<div class="note-key-points-preview">
-                                    <strong>Key Points:</strong> ${note.keyPoints.length} points
-                                   </div>`
-                        : `<div class="note-explanation">
-                                    ${(note.explanation || '').substring(0, 150)}${isLongExplanation ? '...' : ''}
-                                   </div>`
-                    }
-                        </div>
-                        
-                        <!-- Full Content (Expanded) -->
-                        <div class="note-full-content hidden">
-                            <div class="note-text-full">
-                                <strong>Selected Text:</strong>
-                                <div class="note-selected-text">${note.selectedText}</div>
+                // Format differently for attachments (images/tables) vs regular notes
+                if (hasAttachments) {
+                    // For image/table notes, just show caption and the image/table directly
+                    return `
+                        <div class="note-item" data-index="${index}">
+                            <div class="note-header">
+                                <span class="note-badge">${note.prompt}</span>
+                                <div class="note-actions">
+                                    <button class="note-edit" data-index="${index}" title="Edit">
+                                        ✏️
+                                    </button>
+                                    <button class="note-delete" data-index="${index}" title="Delete">×</button>
+                            </div>
                             </div>
                             
-                            ${note.explanation ? `
-                                <div class="note-explanation-full">
-                                    <strong>Explanation:</strong>
-                                    <div class="note-explanation-text">${note.explanation}</div>
-                                </div>
-                            ` : ''}
+                            <div class="note-caption">
+                                ${note.selectedText}
+                            </div>
                             
-                            ${hasKeyPoints ? `
-                                <div class="note-key-points-full">
-                                    <strong>Key Points:</strong>
-                                    <ul>
-                                        ${note.keyPoints.map(point => `<li>${point}</li>`).join('')}
-                                    </ul>
+                            ${this.renderNoteAttachments(note.attachments)}
+                            
+                            <div class="note-footer">
+                                <small>${new Date(note.timestamp).toLocaleString()}</small>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Regular notes with Selected:, Explanation:, etc.
+                    return `
+                        <div class="note-item ${needsExpand ? 'expandable' : ''}" data-index="${index}">
+                            <div class="note-header">
+                                <span class="note-badge">${note.prompt}</span>
+                                <div class="note-actions">
+                                    <button class="note-edit" data-index="${index}" title="Edit">
+                                        ✏️
+                                    </button>
+                                    <button class="note-delete" data-index="${index}" title="Delete">×</button>
+                            </div>
+                            </div>
+                            
+                            <!-- Preview Mode (Collapsed) -->
+                            <div class="note-preview">
+                            ${note.selectedText ? `
+                                <div class="note-text">
+                                    <strong>Selected:</strong> "${note.selectedText.substring(0, 60)}${isLongText ? '...' : ''}"
                                 </div>
                             ` : ''}
+                                ${hasKeyPoints
+                            ? `<div class="note-key-points-preview">
+                                        <strong>Key Points:</strong> ${note.keyPoints.length} points
+                                       </div>`
+                            : `<div class="note-explanation">
+                                        ${(note.explanation || '').substring(0, 150)}${isLongExplanation ? '...' : ''}
+                                       </div>`
+                        }
+                            </div>
+                            
+                            <!-- Full Content (Expanded) -->
+                            <div class="note-full-content hidden">
+                                ${note.selectedText ? `
+                                    <div class="note-text-full">
+                                        <strong>Selected Text:</strong>
+                                        <div class="note-selected-text">${note.selectedText}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${note.explanation ? `
+                                    <div class="note-explanation-full">
+                                        <strong>Explanation:</strong>
+                                        <div class="note-explanation-text">${note.explanation}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${hasKeyPoints ? `
+                                    <div class="note-key-points-full">
+                                        <strong>Key Points:</strong>
+                                        <ul>
+                                            ${note.keyPoints.map(point => `<li>${point}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="note-footer">
+                                <small>${new Date(note.timestamp).toLocaleString()}</small>
+                                ${needsExpand ? '<button class="note-expand-toggle">Show more</button>' : ''}
+                            </div>
                         </div>
-                        
-                        <div class="note-footer">
-                            <small>${new Date(note.timestamp).toLocaleString()}</small>
-                            ${needsExpand ? '<button class="note-expand-toggle">Show more</button>' : ''}
-                        </div>
-                    </div>
-                `;
+                    `;
+                }
             }).join('');
 
             // Add event handlers
@@ -1291,6 +1351,109 @@ Provide a focused answer to the follow-up question, building on the previous exp
         } catch (error) {
             console.error('Error loading study notes:', error);
         }
+    }
+
+    renderNoteAttachments(attachments) {
+        if (!attachments) return '';
+
+        let html = '<div class="note-attachments-section">';
+
+        // Render images (just the image, no label or caption)
+        if (attachments.images && attachments.images.length > 0) {
+            html += '<div class="note-images">';
+            attachments.images.forEach((img, index) => {
+                html += `
+                    <div class="note-image-container">
+                        <img src="${img.data}" alt="${img.name}" class="note-image" />
+                    </div>
+                `;
+            });
+            html += '</div>';
+        }
+
+        // Render tables (just the table, no label or caption)
+        if (attachments.tables && attachments.tables.length > 0) {
+            html += '<div class="note-tables">';
+            attachments.tables.forEach((tableData, index) => {
+                html += '<div class="note-table-container">';
+                html += this.renderTableWithFormulas(tableData.data);
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+
+        html += '</div>';
+
+        // Trigger MathJax rendering after a short delay to ensure DOM is updated
+        setTimeout(() => {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                const notesList = document.getElementById('notes-list');
+                if (notesList) {
+                    window.MathJax.typesetPromise([notesList]).catch((err) => {
+                        console.error('MathJax rendering error in notes:', err);
+                    });
+                }
+            }
+        }, 100);
+
+        return html;
+    }
+
+    renderTableWithFormulas(tableData) {
+        let html = '<table class="note-table">';
+
+        tableData.forEach((row, rowIndex) => {
+            const isHeader = rowIndex === 0;
+            html += '<tr>';
+            row.forEach((cell) => {
+                const tag = isHeader ? 'th' : 'td';
+                // Escape HTML but keep LaTeX delimiters
+                const cellContent = this.escapeHtmlButKeepMath(cell);
+                html += `<${tag}>${cellContent}</${tag}>`;
+            });
+            html += '</tr>';
+        });
+
+        html += '</table>';
+        return html;
+    }
+
+    escapeHtmlButKeepMath(text) {
+        if (!text) return '';
+
+        // Temporarily replace math delimiters with placeholders
+        const mathPlaceholders = [];
+        let placeholderIndex = 0;
+
+        // Handle display math $$ ... $$
+        text = text.replace(/\$\$(.*?)\$\$/g, (match) => {
+            const placeholder = `__MATH_DISPLAY_${placeholderIndex}__`;
+            mathPlaceholders.push({ placeholder, content: match });
+            placeholderIndex++;
+            return placeholder;
+        });
+
+        // Handle inline math $ ... $
+        text = text.replace(/\$([^\$]+)\$/g, (match) => {
+            const placeholder = `__MATH_INLINE_${placeholderIndex}__`;
+            mathPlaceholders.push({ placeholder, content: match });
+            placeholderIndex++;
+            return placeholder;
+        });
+
+        // Escape HTML
+        text = text.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        // Restore math delimiters
+        mathPlaceholders.forEach(({ placeholder, content }) => {
+            text = text.replace(placeholder, content);
+        });
+
+        return text;
     }
 
     attachNoteEventHandlers(notesList, currentPaperNotes) {
@@ -1412,6 +1575,19 @@ Provide a focused answer to the follow-up question, building on the previous exp
                     <label for="note-content">Note Content</label>
                     <textarea id="note-content" rows="6" placeholder="Write your notes here..."></textarea>
                 </div>
+                <div class="dialog-field">
+                    <label>Attachments</label>
+                    <div class="attachment-buttons">
+                        <button type="button" class="attachment-btn" id="add-image-btn">
+                            <span>📷</span> Add Image
+                        </button>
+                        <button type="button" class="attachment-btn" id="add-table-btn">
+                            <span>📊</span> Add Table
+                        </button>
+                    </div>
+                    <input type="file" id="image-upload" accept="image/*" style="display: none;" />
+                    <div id="attachments-preview"></div>
+                </div>
             </div>
             <div class="dialog-footer">
                 <button class="dialog-btn dialog-cancel">Cancel</button>
@@ -1422,8 +1598,46 @@ Provide a focused answer to the follow-up question, building on the previous exp
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
 
+        // Store attachments
+        const attachments = {
+            images: [],
+            tables: []
+        };
+
         // Focus on title input
         setTimeout(() => dialog.querySelector('#note-title').focus(), 100);
+
+        // Image upload handler
+        const imageUpload = dialog.querySelector('#image-upload');
+        const addImageBtn = dialog.querySelector('#add-image-btn');
+        addImageBtn.addEventListener('click', () => imageUpload.click());
+
+        imageUpload.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    attachments.images.push({
+                        data: event.target.result,
+                        name: file.name,
+                        type: file.type
+                    });
+                    this.updateAttachmentsPreview(dialog, attachments);
+                };
+                reader.readAsDataURL(file);
+            });
+            // Reset file input
+            e.target.value = '';
+        });
+
+        // Table add handler
+        const addTableBtn = dialog.querySelector('#add-table-btn');
+        addTableBtn.addEventListener('click', () => {
+            this.showTableDialog((tableData) => {
+                attachments.tables.push(tableData);
+                this.updateAttachmentsPreview(dialog, attachments);
+            });
+        });
 
         // Close handlers
         const closeDialog = () => overlay.remove();
@@ -1446,18 +1660,420 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
             const note = {
                 prompt: title,
-                selectedText: reference || 'Manual note',
+                selectedText: reference || '',
                 explanation: content,
                 keyPoints: [],
                 paperUrl: window.location.href,
                 paperTitle: this.paperData?.title || document.title,
                 timestamp: Date.now(),
-                isManual: true
+                isManual: true,
+                attachments: attachments
             };
 
             await this.saveToStudyNotes(note);
             closeDialog();
             this.showNotification('Note added successfully!', 'success');
+        });
+    }
+
+    updateAttachmentsPreview(dialog, attachments) {
+        const preview = dialog.querySelector('#attachments-preview');
+        preview.innerHTML = '';
+
+        // Show images
+        attachments.images.forEach((img, index) => {
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'attachment-item';
+            imgContainer.innerHTML = `
+                <div class="attachment-preview">
+                    <img src="${img.data}" alt="${img.name}" />
+                    <button class="remove-attachment" data-type="image" data-index="${index}">×</button>
+                </div>
+                <div class="attachment-name">${img.name}</div>
+            `;
+            preview.appendChild(imgContainer);
+        });
+
+        // Show tables
+        attachments.tables.forEach((table, index) => {
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'attachment-item';
+            tableContainer.innerHTML = `
+                <div class="attachment-preview table-preview">
+                    <div class="table-icon">📊</div>
+                    <button class="remove-attachment" data-type="table" data-index="${index}">×</button>
+                </div>
+                <div class="attachment-name">Table: ${table.caption || `Table ${index + 1}`}</div>
+            `;
+            preview.appendChild(tableContainer);
+        });
+
+        // Add remove handlers
+        preview.querySelectorAll('.remove-attachment').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const type = e.target.dataset.type;
+                const index = parseInt(e.target.dataset.index);
+                if (type === 'image') {
+                    attachments.images.splice(index, 1);
+                } else if (type === 'table') {
+                    attachments.tables.splice(index, 1);
+                }
+                this.updateAttachmentsPreview(dialog, attachments);
+            });
+        });
+    }
+
+    showTableDialog(onSave) {
+        const overlay = document.createElement('div');
+        overlay.className = 'papermind-dialog-overlay';
+
+        const dialog = document.createElement('div');
+        dialog.className = 'papermind-table-dialog';
+        dialog.innerHTML = `
+            <div class="dialog-header">
+                <h3>Add Table</h3>
+                <button class="dialog-close">×</button>
+            </div>
+            <div class="dialog-body">
+                <div class="dialog-field">
+                    <label for="table-caption">Table Caption (optional)</label>
+                    <input type="text" id="table-caption" placeholder="e.g., Experimental Results" />
+                </div>
+                <div class="dialog-field">
+                    <label>Table Size</label>
+                    <div class="table-size-controls">
+                        <label>Rows: <input type="number" id="table-rows" min="1" value="3" /></label>
+                        <label>Columns: <input type="number" id="table-cols" min="1" value="3" /></label>
+                        <button type="button" class="btn-generate-table">Generate</button>
+                    </div>
+                </div>
+                <div class="dialog-field">
+                    <label>Table Content (supports LaTeX formulas with $ delimiters)</label>
+                    <div id="table-editor"></div>
+                </div>
+                <div class="dialog-help">
+                    💡 Tip: Use $ for inline math (e.g., $x^2$) and $$ for block math
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button class="dialog-btn dialog-cancel">Cancel</button>
+                <button class="dialog-btn dialog-save">Add Table</button>
+            </div>
+        `;
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        let tableData = [];
+
+        // Generate initial table
+        const generateTable = () => {
+            const rows = parseInt(dialog.querySelector('#table-rows').value) || 3;
+            const cols = parseInt(dialog.querySelector('#table-cols').value) || 3;
+            tableData = Array(rows).fill(null).map(() => Array(cols).fill(''));
+            this.renderTableEditor(dialog.querySelector('#table-editor'), tableData);
+        };
+
+        generateTable();
+
+        dialog.querySelector('.btn-generate-table').addEventListener('click', generateTable);
+
+        // Close handlers
+        const closeDialog = () => overlay.remove();
+        dialog.querySelector('.dialog-close').addEventListener('click', closeDialog);
+        dialog.querySelector('.dialog-cancel').addEventListener('click', closeDialog);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeDialog();
+        });
+
+        // Save handler
+        dialog.querySelector('.dialog-save').addEventListener('click', () => {
+            const caption = dialog.querySelector('#table-caption').value.trim();
+            onSave({
+                caption: caption,
+                data: tableData,
+                timestamp: Date.now()
+            });
+            closeDialog();
+        });
+    }
+
+    renderTableEditor(container, tableData) {
+        const table = document.createElement('table');
+        table.className = 'note-table-editor';
+
+        tableData.forEach((row, rowIndex) => {
+            const tr = document.createElement('tr');
+            row.forEach((cell, colIndex) => {
+                const td = document.createElement('td');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = cell;
+                input.placeholder = rowIndex === 0 ? 'Header' : 'Cell';
+                input.addEventListener('input', (e) => {
+                    tableData[rowIndex][colIndex] = e.target.value;
+                });
+                td.appendChild(input);
+                tr.appendChild(td);
+            });
+            table.appendChild(tr);
+        });
+
+        container.innerHTML = '';
+        container.appendChild(table);
+    }
+
+    showImageCaptureDialog(imgElement, figureElement) {
+        // Remove any existing capture boxes
+        const existing = document.querySelector('.papermind-capture-box');
+        if (existing) existing.remove();
+
+        // Extract image data
+        const imgSrc = imgElement.src;
+
+        // Get caption if exists - try multiple locations
+        let caption = '';
+
+        // 1. Try figcaption in figure element
+        if (figureElement) {
+            const figcaption = figureElement.querySelector('figcaption');
+            if (figcaption) {
+                caption = figcaption.textContent.trim();
+            }
+        }
+
+        // 2. Try .caption class near image
+        if (!caption) {
+            const imageWrapper = imgElement.closest('figure, .figure, .image-wrapper');
+            if (imageWrapper) {
+                const captionElement = imageWrapper.querySelector('.caption, .image-caption, figcaption');
+                if (captionElement) {
+                    caption = captionElement.textContent.trim();
+                }
+            }
+        }
+
+        // 3. Try previous or next sibling
+        if (!caption) {
+            const prevSibling = imgElement.previousElementSibling;
+            const nextSibling = imgElement.nextElementSibling;
+
+            if (prevSibling && (prevSibling.tagName === 'P' || prevSibling.classList.contains('caption'))) {
+                caption = prevSibling.textContent.trim();
+            } else if (nextSibling && (nextSibling.tagName === 'P' || nextSibling.classList.contains('caption') || nextSibling.tagName === 'FIGCAPTION')) {
+                caption = nextSibling.textContent.trim();
+            }
+        }
+
+        // 4. Get alt text as fallback
+        if (!caption) {
+            caption = imgElement.alt || imgElement.title || 'Image from paper';
+        }
+
+        // Create small inline button
+        const captureBox = document.createElement('div');
+        captureBox.className = 'papermind-capture-box';
+        captureBox.innerHTML = `
+            <button class="capture-box-btn">
+                <span class="btn-icon">📷</span>
+                Add to Notes
+            </button>
+        `;
+
+        // Position the box below the image
+        const targetElement = figureElement || imgElement;
+        targetElement.style.position = 'relative';
+        targetElement.style.overflow = 'visible';
+        targetElement.appendChild(captureBox);
+
+        // Add handler
+        captureBox.querySelector('.capture-box-btn').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-icon">⏳</span> Adding...';
+
+            // Convert image to base64 if it's not already
+            let imageData = imgSrc;
+            if (!imgSrc.startsWith('data:')) {
+                try {
+                    const response = await fetch(imgSrc);
+                    const blob = await response.blob();
+                    imageData = await this.blobToBase64(blob);
+                } catch (error) {
+                    console.error('Error converting image:', error);
+                    this.showNotification('Failed to capture image', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<span class="btn-icon">📷</span> Add to Notes';
+                    return;
+                }
+            }
+
+            const note = {
+                prompt: 'Figure from paper',
+                selectedText: caption,
+                explanation: caption || 'Image captured from paper',
+                keyPoints: [],
+                paperUrl: window.location.href,
+                paperTitle: this.paperData?.title || document.title,
+                timestamp: Date.now(),
+                isManual: true,
+                attachments: {
+                    images: [{
+                        data: imageData,
+                        name: caption.substring(0, 50) || 'figure.png',
+                        type: 'image/png'
+                    }],
+                    tables: []
+                }
+            };
+
+            console.log('📸 Attempting to save image note:', note);
+            await this.saveToStudyNotes(note);
+            console.log('✅ Image note saved successfully');
+            captureBox.remove();
+            this.showNotification('Image added to notes! 📷', 'success');
+        });
+
+        // Close when clicking outside
+        setTimeout(() => {
+            const closeOnClickOutside = (e) => {
+                if (!captureBox.contains(e.target) && !targetElement.contains(e.target)) {
+                    captureBox.remove();
+                    document.removeEventListener('click', closeOnClickOutside);
+                }
+            };
+            document.addEventListener('click', closeOnClickOutside);
+        }, 100);
+    }
+
+    showTableCaptureDialog(tableElement) {
+        // Remove any existing capture boxes
+        const existing = document.querySelector('.papermind-capture-box');
+        if (existing) existing.remove();
+
+        // Extract table data
+        const rows = Array.from(tableElement.querySelectorAll('tr'));
+        const tableData = rows.map(row => {
+            const cells = Array.from(row.querySelectorAll('th, td'));
+            return cells.map(cell => cell.textContent.trim());
+        });
+
+        // Get table caption if exists - try multiple locations
+        let caption = '';
+
+        // 1. Try caption element inside table
+        let captionElement = tableElement.querySelector('caption');
+
+        // 2. Try .caption class near table
+        if (!captionElement) {
+            const tableWrapper = tableElement.closest('.ltx_table, .table-wrapper, figure');
+            if (tableWrapper) {
+                captionElement = tableWrapper.querySelector('.caption, .table-caption, figcaption');
+            }
+        }
+
+        // 3. Try previous sibling (paragraph or div with caption)
+        if (!captionElement) {
+            const prevSibling = tableElement.previousElementSibling;
+            if (prevSibling && (prevSibling.tagName === 'P' || prevSibling.classList.contains('caption'))) {
+                captionElement = prevSibling;
+            }
+        }
+
+        // 4. Try parent element's caption
+        if (!captionElement) {
+            const parent = tableElement.parentElement;
+            if (parent) {
+                captionElement = parent.querySelector('.caption, .table-caption');
+                // Don't use it if it's after the table
+                if (captionElement && tableElement.compareDocumentPosition(captionElement) & Node.DOCUMENT_POSITION_PRECEDING) {
+                    captionElement = null;
+                }
+            }
+        }
+
+        if (captionElement) {
+            caption = captionElement.textContent.trim();
+        }
+
+        if (!caption) {
+            caption = `Table with ${rows.length} rows × ${tableData[0]?.length || 0} columns`;
+        }
+
+        // Create small inline button
+        const captureBox = document.createElement('div');
+        captureBox.className = 'papermind-capture-box';
+        captureBox.innerHTML = `
+            <button class="capture-box-btn">
+                <span class="btn-icon">📊</span>
+                Add to Notes
+            </button>
+        `;
+
+        // Position the box below the table
+        const tableWrapper = tableElement.closest('.ltx_table') || tableElement.parentElement;
+        const targetElement = tableWrapper || tableElement;
+
+        // Make sure parent has relative positioning and visible overflow
+        if (targetElement.style.position !== 'relative' && targetElement.style.position !== 'absolute') {
+            targetElement.style.position = 'relative';
+        }
+        targetElement.style.overflow = 'visible';
+
+        targetElement.appendChild(captureBox);
+
+        // Add handler
+        captureBox.querySelector('.capture-box-btn').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-icon">⏳</span> Adding...';
+
+            const note = {
+                prompt: 'Table from paper',
+                selectedText: caption,
+                explanation: caption || 'Table captured from paper',
+                keyPoints: [],
+                paperUrl: window.location.href,
+                paperTitle: this.paperData?.title || document.title,
+                timestamp: Date.now(),
+                isManual: true,
+                attachments: {
+                    images: [],
+                    tables: [{
+                        caption: caption,
+                        data: tableData,
+                        timestamp: Date.now()
+                    }]
+                }
+            };
+
+            console.log('📊 Attempting to save table note:', note);
+            await this.saveToStudyNotes(note);
+            console.log('✅ Table note saved successfully');
+            captureBox.remove();
+            this.showNotification('Table added to notes! 📊', 'success');
+        });
+
+        // Close when clicking outside
+        setTimeout(() => {
+            const closeOnClickOutside = (e) => {
+                if (!captureBox.contains(e.target) && !targetElement.contains(e.target)) {
+                    captureBox.remove();
+                    document.removeEventListener('click', closeOnClickOutside);
+                }
+            };
+            document.addEventListener('click', closeOnClickOutside);
+        }, 100);
+    }
+
+    blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
         });
     }
 
@@ -1527,7 +2143,7 @@ Provide a focused answer to the follow-up question, building on the previous exp
             // Update the note with new values
             await this.updateStudyNote(noteIndex, {
                 prompt: title,
-                selectedText: reference || 'Manual note',
+                selectedText: reference || '',
                 explanation: content
             });
 
@@ -1586,7 +2202,11 @@ Provide a focused answer to the follow-up question, building on the previous exp
 
         notes.forEach((note, index) => {
             markdown += `## Note ${index + 1}: ${note.prompt}\n\n`;
-            markdown += `**Selected Text:**\n> ${note.selectedText}\n\n`;
+
+            // Only show selected text if it exists
+            if (note.selectedText) {
+                markdown += `**Selected Text:**\n> ${note.selectedText}\n\n`;
+            }
 
             // Add key points if available
             if (note.keyPoints && note.keyPoints.length > 0) {
@@ -1604,6 +2224,31 @@ Provide a focused answer to the follow-up question, building on the previous exp
                 markdown += `**Explanation:**\n${note.explanation}\n\n`;
             }
 
+            // Add attachments if available
+            if (note.attachments) {
+                // Add images
+                if (note.attachments.images && note.attachments.images.length > 0) {
+                    markdown += `**Images:**\n`;
+                    note.attachments.images.forEach((img, imgIndex) => {
+                        markdown += `- ${img.name}\n`;
+                        markdown += `  ![${img.name}](${img.data})\n\n`;
+                    });
+                }
+
+                // Add tables
+                if (note.attachments.tables && note.attachments.tables.length > 0) {
+                    note.attachments.tables.forEach((tableData, tableIndex) => {
+                        if (tableData.caption) {
+                            markdown += `**${tableData.caption}**\n\n`;
+                        } else {
+                            markdown += `**Table ${tableIndex + 1}:**\n\n`;
+                        }
+                        markdown += this.formatTableAsMarkdown(tableData.data);
+                        markdown += `\n`;
+                    });
+                }
+            }
+
             markdown += `**Time:** ${new Date(note.timestamp).toLocaleString()}\n\n`;
             if (note.isFollowUp) {
                 markdown += `*This is a follow-up question*\n\n`;
@@ -1612,6 +2257,53 @@ Provide a focused answer to the follow-up question, building on the previous exp
         });
 
         markdown += `\n\n*Generated by PaperMind - AI Research Assistant*\n`;
+        return markdown;
+    }
+
+    formatTableAsMarkdown(tableData) {
+        if (!tableData || tableData.length === 0) return '';
+
+        let markdown = '';
+
+        // Helper function to escape and clean cell content
+        const cleanCell = (cell) => {
+            if (!cell) return '';
+
+            // Convert to string and trim
+            let cleaned = String(cell).trim();
+
+            // Replace newlines with spaces
+            cleaned = cleaned.replace(/\n/g, ' ');
+
+            // Replace multiple spaces with single space
+            cleaned = cleaned.replace(/\s+/g, ' ');
+
+            // Escape pipes that would break markdown tables (replace with HTML entity)
+            cleaned = cleaned.replace(/\|/g, '\\|');
+
+            // Preserve LaTeX math formulas - wrap inline math in $...$
+            // This is a simple heuristic: if content has LaTeX commands, wrap it
+            if (cleaned.match(/\\[a-zA-Z]+/) || cleaned.match(/[_^{}]/)) {
+                // If it looks like math and isn't already wrapped
+                if (!cleaned.startsWith('$') && !cleaned.endsWith('$')) {
+                    cleaned = `$${cleaned}$`;
+                }
+            }
+
+            return cleaned;
+        };
+
+        // Add table rows
+        tableData.forEach((row, rowIndex) => {
+            const cleanedRow = row.map(cell => cleanCell(cell));
+            markdown += '| ' + cleanedRow.join(' | ') + ' |\n';
+
+            // Add separator after first row (header)
+            if (rowIndex === 0) {
+                markdown += '| ' + cleanedRow.map(() => '---').join(' | ') + ' |\n';
+            }
+        });
+
         return markdown;
     }
 
