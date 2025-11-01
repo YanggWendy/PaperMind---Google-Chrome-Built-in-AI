@@ -2,6 +2,10 @@
 
 🧠 **PaperMind** is a powerful Google Chrome extension that transforms dense research papers into interactive summaries using Chrome's built-in AI capabilities. Built with Chrome's Prompt API, Summarizer API, and other AI services, it makes complex academic work accessible and engaging.
 
+![PaperMind Example](example.png)
+
+*PaperMind in action: Enhanced paper view with structured Essentials & Details, alongside the Study Notes panel*
+
 ## ✨ Features
 
 ### 📄 Section-by-Section Paper Enhancement
